@@ -51,9 +51,7 @@ func (sk *Sketch) toNormal() {
 	sk.regs = newRegs(sk.m)
 	for iter := sk.sparseList.Iter(); iter.HasNext(); {
 		i, r := decodeHash(iter.Next(), sk.precision, pp)
-		if sk.regs.get(i) < r {
-			sk.regs.set(i, r)
-		}
+		sk.insert(i, r)
 	}
 
 	sk.sparse = false
@@ -61,22 +59,7 @@ func (sk *Sketch) toNormal() {
 	sk.sparseList = nil
 }
 
-// Insert ...
-func (sk *Sketch) Insert(e []byte) {
-	if sk.sparse {
-		x := metro.Hash64(e, 1337)
-		sk.tmpSet.add(encodeHash(x, sk.precision, pp))
-
-		if uint32(len(sk.tmpSet))*100 > sk.m {
-			sk.mergeSparse()
-			if uint32(sk.sparseList.Len()) > sk.m {
-				sk.toNormal()
-			}
-		}
-		return
-	}
-
-	j, r := getPosVal(e, sk.precision)
+func (sk *Sketch) insert(i uint32, r uint8) {
 	if r-sk.b >= capacity {
 		//overflow
 		db := sk.regs.min()
@@ -85,13 +68,28 @@ func (sk *Sketch) Insert(e []byte) {
 			sk.regs.rebase(db)
 		}
 	}
-
 	if r > sk.b {
-		j := uint32(j)
 		val := uint8(math.Min(float64(r-sk.b), float64(capacity-1)))
-		if val > sk.regs.get(j) {
-			sk.regs.set(j, uint8(val))
+		if val > sk.regs.get(i) {
+			sk.regs.set(i, uint8(val))
 		}
+	}
+}
+
+// Insert ...
+func (sk *Sketch) Insert(e []byte) {
+	x := metro.Hash64(e, 42)
+	if sk.sparse {
+		sk.tmpSet.add(encodeHash(x, sk.precision, pp))
+		if uint32(len(sk.tmpSet))*100 > sk.m {
+			sk.mergeSparse()
+			if uint32(sk.sparseList.Len()) > sk.m {
+				sk.toNormal()
+			}
+		}
+	} else {
+		i, r := getPosVal(x, sk.precision)
+		sk.insert(uint32(i), r)
 	}
 }
 
@@ -107,12 +105,10 @@ func (sk *Sketch) Estimate() uint64 {
 	m := float64(sk.m)
 	est := sk.alpha * m * m / sum
 
-	if est < 2*m {
-		return uint64(linearCount(sk.m, uint32(ez)) + 0.5)
-	} else if sk.b == 0 {
+	if sk.b == 0 {
 		return uint64((sk.alpha * m * (m - ez) / (sum + beta(ez))) + 0.5)
 	}
-	return uint64((sk.alpha * m * (m) / (sum)) + 0.5)
+	return uint64(est + 0.5)
 
 }
 
