@@ -18,19 +18,14 @@ func newRegs(size uint32) *rs {
 	}
 }
 
-func (r *reg) set(offset, val uint8) bool {
-	val = val << 4 >> 4
-	isZero := false
+func (r *reg) set(offset, val uint8) {
 	if offset == 0 {
-		isZero = uint8(*r>>4) == 0
 		tmpVal := uint8((*r) << 4 >> 4)
 		*r = reg(uint8(tmpVal) | (val << 4))
 	} else {
-		isZero = uint8(*r<<4>>4) == 0
 		tmpVal := uint8((*r) >> 4)
 		*r = reg(tmpVal<<4 | val)
 	}
-	return isZero
 }
 
 func (r *reg) get(offset uint8) uint8 {
@@ -41,25 +36,15 @@ func (r *reg) get(offset uint8) uint8 {
 }
 
 func (rs *rs) rebase(delta uint8) {
-	nz := uint32(0)
 	db := delta<<4 | delta
 	for i, r := range rs.regs {
 		rs.regs[i] = r - reg(db)
-		if val := r.get(0); val == 0 {
-			nz++
-		}
-		if val := r.get(1); val == 0 {
-			nz++
-		}
 	}
-	rs.nz = nz
 }
 
 func (rs *rs) set(i uint32, val uint8) {
 	offset, index := uint8(i%2), i/2
-	if isZero := rs.regs[index].set(offset, val); isZero {
-		rs.nz--
-	}
+	rs.regs[index].set(offset, val)
 }
 
 func (rs *rs) get(i uint32) uint8 {
@@ -77,10 +62,10 @@ func (rs *rs) sum(base uint8) (res float64) {
 
 func (rs *rs) zeros() (res uint64) {
 	for _, r := range rs.regs {
-		if val := r.get(0); val == 0 {
+		if uint8(r<<4) == 0 {
 			res++
 		}
-		if val := r.get(1); val == 0 {
+		if r < 16 {
 			res++
 		}
 	}
@@ -88,20 +73,16 @@ func (rs *rs) zeros() (res uint64) {
 }
 
 func (rs *rs) min() uint8 {
-	if rs.nz > 0 {
-		return 0
-	}
 	min := uint8(math.MaxUint8)
 	for _, r := range rs.regs {
-		if val := r.get(0); val < min {
-			if min = val; min == 0 {
-				return min
-			}
+		if val := uint8(r << 4 >> 4); val < min {
+			min = val
 		}
-		if val := r.get(1); val < min {
-			if min = val; min == 0 {
-				return min
-			}
+		if val := uint8(r >> 4); val < min {
+			min = val
+		}
+		if min == 0 {
+			break
 		}
 	}
 	return min

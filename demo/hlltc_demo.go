@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/clarkduvall/hyperloglog"
 	metro "github.com/dgryski/go-metro"
@@ -26,30 +27,24 @@ func main() {
 	hlltc, _ := hlltc.New(14)
 	hllpp, _ := hyperloglog.NewPlus(14)
 
-	step := 10
+	step := 1000000
 	unique := map[string]bool{}
 
-	for i := 1; len(unique) <= 10000000; i++ {
-		str := fmt.Sprintf("flow-%d", i)
+	for i := 1; len(unique) <= 1000000000; i++ {
+		str := strconv.Itoa(i)
 		hlltc.Insert([]byte(str))
 		item := fakeHash64(metro.Hash64([]byte(str), 1337))
 		hllpp.Add(item)
 		unique[str] = true
 
-		if len(unique)%step == 0 {
-			step *= 5
+		if len(unique)%step == 0 || len(unique) == 1000000000 {
+			step += 1000000
 			exact := uint64(len(unique))
 			res := uint64(hlltc.Estimate())
 			ratio := 100 * estimateError(res, exact)
 			res2 := uint64(hllpp.Count())
 			ratio2 := 100 * estimateError(res2, exact)
-			fmt.Printf("Exact %d, got:\n\thlltc %d (%.2f%% off)\n\thllpp %d (%.2f%% off)\n", exact, res, ratio, res2, ratio2)
+			fmt.Printf("Exact %d, got:\n\thlltc %d (%.4f%% off)\n\thllpp %d (%.4f%% off)\n", exact, res, ratio, res2, ratio2)
 		}
 	}
-	exact := uint64(len(unique))
-	res := uint64(hlltc.Estimate())
-	ratio := 100 * estimateError(res, exact)
-	res2 := uint64(hllpp.Count())
-	ratio2 := 100 * estimateError(res2, exact)
-	fmt.Printf("Exact %d, got:\n\thlltc %d (%.2f%% off)\n\thllpp %d (%.2f%% off)\n", exact, res, ratio, res2, ratio2)
 }

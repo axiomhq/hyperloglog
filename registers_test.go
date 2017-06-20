@@ -24,13 +24,16 @@ func TestRegistersGetSetSum(t *testing.T) {
 }
 
 func TestRegistersZeros(t *testing.T) {
-	m := uint32(2)
+	m := uint32(10)
 	rs := newRegs(m)
 	for i := uint32(0); i < m; i++ {
-		rs.set(i, uint8(i)%15)
+		rs.set(i, (uint8(i)%15)+1)
 	}
 	for i := uint32(0); i < m; i++ {
-		exp := uint8(i % 15)
+		rs.set(i, (uint8(i)%15)+1)
+	}
+	for i := uint32(0); i < m; i++ {
+		exp := uint8(i%15) + 1
 		if got := rs.get(i); got != exp {
 			t.Errorf("expected %d, got %d", exp, got)
 		}
