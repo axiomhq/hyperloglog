@@ -27,18 +27,18 @@ func main() {
 	hlltc, _ := hlltc.New(14)
 	hllpp, _ := hyperloglog.NewPlus(14)
 
-	step := 1000000
+	step := 10
 	unique := map[string]bool{}
 
-	for i := 1; len(unique) <= 1000000000; i++ {
+	for i := 1; len(unique) <= 10000000; i++ {
 		str := strconv.Itoa(i)
 		hlltc.Insert([]byte(str))
 		item := fakeHash64(metro.Hash64([]byte(str), 1337))
 		hllpp.Add(item)
 		unique[str] = true
 
-		if len(unique)%step == 0 || len(unique) == 1000000000 {
-			step += 1000000
+		if len(unique)%step == 0 || len(unique) == 10000000 {
+			step *= 5
 			exact := uint64(len(unique))
 			res := uint64(hlltc.Estimate())
 			ratio := 100 * estimateError(res, exact)
