@@ -93,30 +93,6 @@ func (sk *Sketch) Insert(e []byte) {
 	}
 }
 
-// Estimates the bias using empirically determined values.
-func (sk *Sketch) estimateBias(est float64) float64 {
-	estTable, biasTable := rawEstimateData[sk.precision-4], biasData[sk.precision-4]
-
-	if estTable[0] > est {
-		return estTable[0] - biasTable[0]
-	}
-
-	lastEstimate := estTable[len(estTable)-1]
-	if lastEstimate < est {
-		return lastEstimate - biasTable[len(biasTable)-1]
-	}
-
-	var i int
-	for i = 0; i < len(estTable) && estTable[i] < est; i++ {
-	}
-
-	e1, b1 := estTable[i-1], biasTable[i-1]
-	e2, b2 := estTable[i], biasTable[i]
-
-	c := (est - e1) / (e2 - e1)
-	return b1*(1-c) + b2*c
-}
-
 // Estimate ...
 func (sk *Sketch) Estimate() uint64 {
 	if sk.sparse {
@@ -133,17 +109,6 @@ func (sk *Sketch) Estimate() uint64 {
 		est = (sk.alpha * m * (m - ez) / (sum + beta(ez))) + 0.5
 	} else {
 		est = (sk.alpha * m * m / sum) + 0.5
-	}
-
-	if ez > 0 {
-		lc := linearCount(sk.m, uint32(ez))
-		if lc <= threshold[sk.precision-4] {
-			return uint64(lc)
-		}
-	}
-
-	if est <= 5.0*float64(sk.m) {
-		est -= sk.estimateBias(est)
 	}
 
 	return uint64(est + 0.5)
