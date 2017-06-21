@@ -1,4 +1,8 @@
 # hlltc
+## TL;DR
+An improved version of [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog) for the count-distinct problem, approximating the number of distinct elements in a multiset.
+
+## Long Version
 hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in go.
 
 It uses 4 bits per register instead of 5 (HyperLogLog) and 6 (HyperLogLog++), **theoretically saves 20% - 33% space**.
@@ -45,3 +49,4 @@ Exact 10000001, got:
 * [ ] more unit test coverage
 * [ ] merging ability 
 * [ ] marshalling and unmarshalling
+* [ ] benchmarks
