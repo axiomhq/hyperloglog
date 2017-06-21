@@ -1,6 +1,7 @@
 package hlltc
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -24,7 +25,7 @@ func TestRegistersGetSetSum(t *testing.T) {
 }
 
 func TestRegistersZeros(t *testing.T) {
-	m := uint32(10)
+	m := uint32(8)
 	rs := newRegs(m)
 	for i := uint32(0); i < m; i++ {
 		rs.set(i, (uint8(i)%15)+1)
@@ -39,4 +40,17 @@ func TestRegistersZeros(t *testing.T) {
 		}
 	}
 
+	rs.rebase(1)
+
+	for i := uint32(0); i < m; i++ {
+		exp := uint8(i % 15)
+		fmt.Println(i, rs.get(i))
+		if got := rs.get(i); got != exp {
+			t.Errorf("expected %d, got %d", exp, got)
+		}
+	}
+
+	if got := rs.nz; got != 1 {
+		t.Errorf("expected 1, got %d", got)
+	}
 }
