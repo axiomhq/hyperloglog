@@ -50,3 +50,4 @@ Exact 10000001, got:
 * [ ] merging ability 
 * [ ] marshalling and unmarshalling
 * [ ] benchmarks
+* [ ] documentation
