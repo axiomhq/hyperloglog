@@ -80,16 +80,8 @@ func (rs *rs) sum(base uint8) (res float64) {
 	return res
 }
 
-func (rs *rs) zeros() (res uint64) {
-	for _, r := range rs.regs {
-		if uint8(r<<4) == 0 {
-			res++
-		}
-		if r < 16 {
-			res++
-		}
-	}
-	return res
+func (rs *rs) zeros() (res uint32) {
+	return rs.nz
 }
 
 func (rs *rs) min() uint8 {
