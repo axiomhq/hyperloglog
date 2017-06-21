@@ -14,35 +14,35 @@ A direct comparsion with the HyperLogLog++ implementation by Clark Duvall [https
 
 ```
 Exact 10, got:
-	hlltc 10 (0.00% off)
-	hllpp 10 (0.00% off)
+	hlltc 10 (0.0000% off)
+	hllpp 10 (0.0000% off)
 Exact 50, got:
-	hlltc 50 (0.00% off)
-	hllpp 50 (0.00% off)
+	hlltc 50 (0.0000% off)
+	hllpp 50 (0.0000% off)
 Exact 250, got:
-	hlltc 250 (0.00% off)
-	hllpp 250 (0.00% off)
+	hlltc 250 (0.0000% off)
+	hllpp 250 (0.0000% off)
 Exact 1250, got:
-	hlltc 1250 (0.00% off)
-	hllpp 1250 (0.00% off)
+	hlltc 1249 (0.0800% off)
+	hllpp 1249 (0.0800% off)
 Exact 6250, got:
-	hlltc 6250 (0.00% off)
-	hllpp 6251 (0.02% off)
+	hlltc 6249 (0.0160% off)
+	hllpp 6250 (0.0000% off)
 Exact 31250, got:
-	hlltc 31412 (0.52% off)
-	hllpp 31288 (0.12% off)
+	hlltc 31338 (0.2816% off)
+	hllpp 31372 (0.3904% off)
 Exact 156250, got:
-	hlltc 156388 (0.09% off)
-	hllpp 154084 (1.39% off)
+	hlltc 157302 (0.6733% off)
+	hllpp 157285 (0.6624% off)
 Exact 781250, got:
-	hlltc 780506 (0.10% off)
-	hllpp 780176 (0.14% off)
+	hlltc 774560 (0.8563% off)
+	hllpp 774560 (0.8563% off)
 Exact 3906250, got:
-	hlltc 3938432 (0.82% off)
-	hllpp 3935760 (0.76% off)
-Exact 10000001, got:
-	hlltc 10092457 (0.92% off)
-	hllpp 10099191 (0.99% off)
+	hlltc 3905562 (0.0176% off)
+	hllpp 3905577 (0.0172% off)
+Exact 10000000, got:
+	hlltc 10055418 (0.5542% off)
+	hllpp 10055522 (0.5552% off)
 ```
 
 ## TODO:
