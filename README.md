@@ -12,38 +12,18 @@ This implementation uses the HLL++ sparse representation for lower cadinalities 
 
 A direct comparsion with the HyperLogLog++ implementation by Clark Duvall [https://github.com/clarkduvall/hyperloglog](https://github.com/clarkduvall/hyperloglog), gave the following results.
 
-```
-Exact 10, got:
-	hlltc 10 (0.0000% off)
-	hllpp 10 (0.0000% off)
-Exact 50, got:
-	hlltc 50 (0.0000% off)
-	hllpp 50 (0.0000% off)
-Exact 250, got:
-	hlltc 250 (0.0000% off)
-	hllpp 250 (0.0000% off)
-Exact 1250, got:
-	hlltc 1249 (0.0800% off)
-	hllpp 1249 (0.0800% off)
-Exact 6250, got:
-	hlltc 6249 (0.0160% off)
-	hllpp 6250 (0.0000% off)
-Exact 31250, got:
-	hlltc 31338 (0.2816% off)
-	hllpp 31372 (0.3904% off)
-Exact 156250, got:
-	hlltc 157302 (0.6733% off)
-	hllpp 157285 (0.6624% off)
-Exact 781250, got:
-	hlltc 774560 (0.8563% off)
-	hllpp 774560 (0.8563% off)
-Exact 3906250, got:
-	hlltc 3905562 (0.0176% off)
-	hllpp 3905577 (0.0172% off)
-Exact 10000000, got:
-	hlltc 10055418 (0.5542% off)
-	hllpp 10055522 (0.5552% off)
-```
+| Exact | HLLPP | HLLTC |
+| --- | --- | --- |
+| 10 | 10 (0.0% off) | 10 (0.0% off) |
+| 50 | 50 (0.0% off) | 50 (0.0% off) |
+| 250 | 250 (0.0% off) | 250 (0.0% off) |
+| 1250 | 1249 (0.08% off) | 1249 (0.08% off) |
+| 6250 | **6250 (0.0% off)** | 6249 (0.016% off) |
+| 31250 | 31372 (0.3904% off) | **31338 (0.2816% off)** |
+| 156250 | **157285 (0.6624% off)** | 157302 (0.6733% off) |
+| 781250 |  774560 (0.8563% off) | 774560 (0.8563% off) |
+| 3906250 | **3905577 (0.0172% off)** | 3905562 (0.0176% off) |
+| 10000000 | 10055522 (0.5552% off) | **10055418 (0.5542% off)** |
 
 ## TODO:
 * [ ] more unit test coverage
