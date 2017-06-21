@@ -85,6 +85,34 @@ type set map[uint32]struct{}
 func (s set) add(v uint32)      { s[v] = struct{}{} }
 func (s set) has(v uint32) bool { _, ok := s[v]; return ok }
 
+func (s set) MarshalBinary() (data []byte, err error) {
+	// 4 bytes for the size of the set, and 4 bytes for each key.
+	// list.
+	data = make([]byte, 0, 4+(4*len(s)))
+
+	// Length of the set. We only need 32 bits because the size of the set
+	// couldn't exceed that on 32 bit architectures.
+	sl := len(s)
+	data = append(data, []byte{
+		byte(sl >> 24),
+		byte(sl >> 16),
+		byte(sl >> 8),
+		byte(sl),
+	}...)
+
+	// Marshal each element in the set.
+	for k := range s {
+		data = append(data, []byte{
+			byte(k >> 24),
+			byte(k >> 16),
+			byte(k >> 8),
+			byte(k),
+		}...)
+	}
+
+	return data, nil
+}
+
 type uint64Slice []uint32
 
 func (p uint64Slice) Len() int           { return len(p) }

@@ -1,6 +1,7 @@
 package hlltc
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"sort"
@@ -12,13 +13,14 @@ const (
 	capacity = uint8(16)
 	pp       = uint8(25)
 	mp       = uint32(1) << pp
+	version  = 1
 )
 
 // Sketch ...
 type Sketch struct {
 	regs       *rs
 	m          uint32
-	precision  uint8
+	p          uint8
 	b          uint8
 	alpha      float64
 	sparse     bool
@@ -28,13 +30,13 @@ type Sketch struct {
 
 // New ...
 func New(precision uint8) (*Sketch, error) {
-	if precision < 6 || precision > 16 {
-		return nil, fmt.Errorf("precision has to be >= 8 and <= 16")
+	if precision < 4 || precision > 18 {
+		return nil, fmt.Errorf("p has to be >= 4 and <= 18")
 	}
 	m := uint32(math.Pow(2, float64(precision)))
 	return &Sketch{
 		m:          m,
-		precision:  precision,
+		p:          precision,
 		alpha:      alpha(float64(m)),
 		sparse:     true,
 		tmpSet:     set{},
@@ -50,7 +52,7 @@ func (sk *Sketch) toNormal() {
 
 	sk.regs = newRegs(sk.m)
 	for iter := sk.sparseList.Iter(); iter.HasNext(); {
-		i, r := decodeHash(iter.Next(), sk.precision, pp)
+		i, r := decodeHash(iter.Next(), sk.p, pp)
 		sk.insert(i, r)
 	}
 
@@ -80,7 +82,7 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 func (sk *Sketch) Insert(e []byte) {
 	x := metro.Hash64(e, 1337)
 	if sk.sparse {
-		sk.tmpSet.add(encodeHash(x, sk.precision, pp))
+		sk.tmpSet.add(encodeHash(x, sk.p, pp))
 		if uint32(len(sk.tmpSet))*100 > sk.m {
 			sk.mergeSparse()
 			if uint32(sk.sparseList.Len()) > sk.m {
@@ -88,7 +90,7 @@ func (sk *Sketch) Insert(e []byte) {
 			}
 		}
 	} else {
-		i, r := getPosVal(x, sk.precision)
+		i, r := getPosVal(x, sk.p)
 		sk.insert(uint32(i), r)
 	}
 }
@@ -152,4 +154,113 @@ func (sk *Sketch) mergeSparse() {
 
 	sk.sparseList = newList
 	sk.tmpSet = set{}
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (sk *Sketch) MarshalBinary() (data []byte, err error) {
+	// Marshal a version marker.
+	data = append(data, version)
+	// Marshal p.
+	data = append(data, byte(sk.p))
+	// Marshal b
+	data = append(data, byte(sk.b))
+
+	if sk.sparse {
+		// It's using the sparse representation.
+		data = append(data, byte(1))
+
+		// Add the tmp_set
+		tsdata, err := sk.tmpSet.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, tsdata...)
+
+		// Add the sparse representation
+		sdata, err := sk.sparseList.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(data, sdata...), nil
+	}
+
+	// It's using the dense representation.
+	data = append(data, byte(0))
+
+	// Add the dense sketch representation.
+	sz := len(sk.regs.regs)
+	data = append(data, []byte{
+		byte(sz >> 24),
+		byte(sz >> 16),
+		byte(sz >> 8),
+		byte(sz),
+	}...)
+
+	// Marshal each element in the list.
+	for i := 0; i < len(sk.regs.regs); i++ {
+		data = append(data, byte(sk.regs.regs[i]))
+	}
+
+	return data, nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (sk *Sketch) UnmarshalBinary(data []byte) error {
+	// Unmarshal version. We may need this in the future if we make
+	// non-compatible changes.
+	_ = data[0]
+
+	// Unmarshal p.
+	p := uint8(data[1])
+
+	newh, err := New(p)
+	if err != nil {
+		return err
+	}
+	*sk = *newh
+
+	// Unmarshal b.
+	sk.b = uint8(data[2])
+
+	// h is now initialised with the correct p. We just need to fill the
+	// rest of the details out.
+	if data[3] == byte(1) {
+		// Using the sparse representation.
+		sk.sparse = true
+
+		// Unmarshal the tmp_set.
+		tssz := binary.BigEndian.Uint32(data[4:8])
+		sk.tmpSet = make(map[uint32]struct{}, tssz)
+
+		// We need to unmarshal tssz values in total, and each value requires us
+		// to read 4 bytes.
+		tsLastByte := int((tssz * 4) + 8)
+		for i := 8; i < tsLastByte; i += 4 {
+			k := binary.BigEndian.Uint32(data[i : i+4])
+			sk.tmpSet[k] = struct{}{}
+		}
+
+		// Unmarshal the sparse representation.
+		return sk.sparseList.UnmarshalBinary(data[tsLastByte:])
+	}
+
+	// Using the dense representation.
+	sk.sparse = false
+	sk.sparseList = nil
+	sk.tmpSet = nil
+	dsz := binary.BigEndian.Uint32(data[4:8])
+	sk.regs = newRegs(dsz * 2)
+	data = data[8:]
+
+	for i, val := range data {
+		sk.regs.regs[i] = reg(val)
+		if uint8(sk.regs.regs[i]<<4>>4) > 0 {
+			sk.regs.nz--
+		}
+		if uint8(sk.regs.regs[i]>>4) > 0 {
+			sk.regs.nz--
+		}
+	}
+
+	return nil
 }
