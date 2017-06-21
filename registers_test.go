@@ -1,7 +1,6 @@
 package hlltc
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -44,7 +43,6 @@ func TestRegistersZeros(t *testing.T) {
 
 	for i := uint32(0); i < m; i++ {
 		exp := uint8(i % 15)
-		fmt.Println(i, rs.get(i))
 		if got := rs.get(i); got != exp {
 			t.Errorf("expected %d, got %d", exp, got)
 		}
