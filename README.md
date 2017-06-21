@@ -9,9 +9,9 @@ This work is based on ["Better with fewer bits: Improving the performance of car
 hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in go.
 
 The core difference to other implementations are:
-* **4-bit register** instead of 5 (HyperLogLog) and 6 (HyperLogLog++), **theoretically saving 20% - 33% space**, but most implementations use use 1 byte registers out of convinience, thus **practically saves 20% - 50% space**.
+* **use metro hash** instead of xxhash
 * **sparse representation** for lower cadinalities and the loglog-beta bias correction medium and high cardinalities.
-* **use metro hash**
+* **4-bit register** instead of 5 (HyperLogLog) and 6 (HyperLogLog++), but most implementations use use 1 byte registers out of convinience, thus **practically saves 20% - 50% space**.
 
 A direct comparsion with the HyperLogLog++ implementation by Clark Duvall [https://github.com/clarkduvall/hyperloglog](https://github.com/clarkduvall/hyperloglog), gave the following results.
 
