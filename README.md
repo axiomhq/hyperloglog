@@ -1,17 +1,18 @@
 # hlltc
-An improved version of [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog) for the count-distinct problem, approximating the number of distinct elements in a multiset. 
+An improved version of [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog) for the count-distinct problem, approximating the number of distinct elements in a multiset **using 20-50% less space** than other usual HyperLogLog implementation.
 
 This work is based on ["Better with fewer bits: Improving the performance of cardinality estimation of large data streams - Qingjun Xiao, You Zhou, Shigang Chen"](http://cse.seu.edu.cn/PersonalPage/csqjxiao/csqjxiao_files/papers/INFOCOM17.pdf).
 
 ## Implementation
-hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in go.
+hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in Go.
 
 The core difference to other implementations are:
 * **use metro hash** instead of xxhash
-* **sparse representation** for lower cadinalities and the loglog-beta bias correction medium and high cardinalities.
-* **4-bit register** instead of 5 (HyperLogLog) and 6 (HyperLogLog++), but most implementations use use 1 byte registers out of convinience, thus **practically saves 20% - 50% space**.
+* **sparse representation** for lower cadinalities (like HyperLogLog++)
+* **loglog-beta** for dynamic bias correction medium and high cardinalities.
+* **4-bit register** instead of 5 (HLL) and 6 (HLL++), but most implementations use 1 byte registers out of convinience
 
-This implementation uses the HLL++ sparse representation for lower cadinalities and the loglog-beta bias correction medium and high cardinalities. In general it borrows a lot from the [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog).
+In general it borrows a lot from the [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog), but uses **50% less space**.
 
 ## Results
 A direct comparsion with the [HyperLogLog++ implementation by Clark Duvall](https://github.com/clarkduvall/hyperloglog), yielded the following results.
