@@ -3,7 +3,6 @@ An improved version of [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog) 
 
 This work is based on ["Better with fewer bits: Improving the performance of cardinality estimation of large data streams - Qingjun Xiao, You Zhou, Shigang Chen"](http://cse.seu.edu.cn/PersonalPage/csqjxiao/csqjxiao_files/papers/INFOCOM17.pdf).
 
-
 ## Implementation
 hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in go.
 
@@ -12,7 +11,10 @@ The core difference to other implementations are:
 * **sparse representation** for lower cadinalities and the loglog-beta bias correction medium and high cardinalities.
 * **4-bit register** instead of 5 (HyperLogLog) and 6 (HyperLogLog++), but most implementations use use 1 byte registers out of convinience, thus **practically saves 20% - 50% space**.
 
-A direct comparsion with the [HyperLogLog++ implementation by Clark Duvall](https://github.com/clarkduvall/hyperloglog), gave the following results.
+This implementation uses the HLL++ sparse representation for lower cadinalities and the loglog-beta bias correction medium and high cardinalities. In general it borrows a lot from the [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog).
+
+## Results
+A direct comparsion with the [HyperLogLog++ implementation by Clark Duvall](https://github.com/clarkduvall/hyperloglog), yielded the following results.
 
 | Exact | HLLPP | HLLTC |
 | --- | --- | --- |
