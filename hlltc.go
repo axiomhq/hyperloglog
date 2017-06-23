@@ -53,8 +53,9 @@ func (sk *Sketch) Merge(other *Sketch) error {
 		// Nothing to do
 		return nil
 	}
+	cpOther := *other
 
-	if sk.p != other.p {
+	if sk.p != cpOther.p {
 		return errors.New("precisions must be equal")
 	}
 
@@ -62,24 +63,26 @@ func (sk *Sketch) Merge(other *Sketch) error {
 		sk.toNormal()
 	}
 
-	if other.sparse {
-		for k := range other.tmpSet {
-			i, r := decodeHash(k, other.p, pp)
+	if cpOther.sparse {
+		for k := range cpOther.tmpSet {
+			i, r := decodeHash(k, cpOther.p, pp)
 			sk.insert(i, r)
 		}
 
-		for iter := other.sparseList.Iter(); iter.HasNext(); {
-			i, r := decodeHash(iter.Next(), other.p, pp)
+		for iter := cpOther.sparseList.Iter(); iter.HasNext(); {
+			i, r := decodeHash(iter.Next(), cpOther.p, pp)
 			sk.insert(i, r)
 		}
 	} else {
-		if sk.b < other.b {
-			sk.regs.rebase(other.b - sk.b)
+		if sk.b < cpOther.b {
+			sk.regs.rebase(cpOther.b - sk.b)
+			sk.b = cpOther.b
 		} else {
-			other.regs.rebase(sk.b - other.b)
+			cpOther.regs.rebase(sk.b - cpOther.b)
+			cpOther.b = sk.b
 		}
 
-		for i, v := range other.regs.fields {
+		for i, v := range cpOther.regs.fields {
 			v1 := v.get(0)
 			if v1 > sk.regs.get(uint32(i)*2) {
 				sk.regs.set(uint32(i)*2, v1)

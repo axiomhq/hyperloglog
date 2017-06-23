@@ -266,6 +266,105 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	}
 }
 
+func TestHLLTC_Merge_Rebase(t *testing.T) {
+	sk1 := NewTestSketch(16)
+	sk2 := NewTestSketch(16)
+	sk1.sparse = false
+	sk2.sparse = false
+	sk1.toNormal()
+	sk2.toNormal()
+
+	sk1.regs.set(13, 7)
+	sk2.regs.set(13, 1)
+	sk1.Merge(sk2)
+	if r := sk1.regs.get(13); r != 7 {
+		t.Error(r)
+	}
+
+	sk2.regs.set(13, 8)
+	sk1.Merge(sk2)
+	if r := sk1.regs.get(13); r != 8 {
+		t.Error(r)
+	}
+
+	sk1.b = 12
+	sk2.regs.set(13, 12)
+	sk1.Merge(sk2)
+	if r := sk1.regs.get(13); r != 8 {
+		t.Error(r)
+	}
+
+	sk2.b = 13
+	sk2.regs.set(13, 12)
+	sk1.Merge(sk2)
+	if r := sk1.regs.get(13); r != 12 {
+		t.Error(r)
+	}
+}
+
+func TestHLLTC_Merge_Complex(t *testing.T) {
+	sk1, err := New(14)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
+	sk2, err := New(14)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
+	sk3, err := New(14)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
+
+	unique := map[string]bool{}
+
+	for i := 1; len(unique) <= 10000000; i++ {
+		str := fmt.Sprintf("flow-%d", i)
+		sk1.Insert([]byte(str))
+		if i%2 == 0 {
+			sk2.Insert([]byte(str))
+		}
+		unique[str] = true
+	}
+
+	exact1 := uint64(len(unique))
+	res1 := uint64(sk1.Estimate())
+	ratio := 100 * estimateError(res1, exact1)
+	if ratio > 2 {
+		t.Errorf("Exact %d, got %d which is %.2f%% error", exact1, res1, ratio)
+	}
+
+	exact2 := uint64(len(unique)) / 2
+	res2 := uint64(sk1.Estimate())
+	ratio = 100 * estimateError(res1, exact1)
+	if ratio > 2 {
+		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
+	}
+
+	sk2.Merge(sk1)
+	exact2 = uint64(len(unique))
+	res2 = uint64(sk2.Estimate())
+	ratio = 100 * estimateError(res1, exact1)
+	if ratio > 2 {
+		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
+	}
+
+	for i := 1; i <= 500000; i++ {
+		str := fmt.Sprintf("stream-%d", i)
+		sk2.Insert([]byte(str))
+		unique[str] = true
+	}
+
+	sk2.Merge(sk3)
+	exact2 = uint64(len(unique))
+	res2 = uint64(sk2.Estimate())
+	ratio = 100 * estimateError(res1, exact1)
+	if ratio > 1 {
+		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
+	}
+
+}
+
 func TestHLLTC_EncodeDecode(t *testing.T) {
 	sk := NewTestSketch(8)
 	i, r := decodeHash(encodeHash(0xffffff8000000000, sk.p, pp), sk.p, pp)
