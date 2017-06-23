@@ -8,7 +8,7 @@ import (
 func TestRegistersGetSetSum(t *testing.T) {
 	length := uint32(16777216)
 	data := make([]uint8, length, length)
-	r := newRegs(length)
+	r := newRegisters(length)
 
 	for i := range data {
 		val := uint8(rand.Intn(16))
@@ -25,7 +25,7 @@ func TestRegistersGetSetSum(t *testing.T) {
 
 func TestRegistersZeros(t *testing.T) {
 	m := uint32(8)
-	rs := newRegs(m)
+	rs := newRegisters(m)
 	for i := uint32(0); i < m; i++ {
 		rs.set(i, (uint8(i)%15)+1)
 	}

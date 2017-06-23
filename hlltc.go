@@ -2,11 +2,10 @@ package hlltc
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
-
-	metro "github.com/dgryski/go-metro"
 )
 
 const (
@@ -18,7 +17,7 @@ const (
 
 // Sketch ...
 type Sketch struct {
-	regs       *rs
+	regs       *registers
 	m          uint32
 	p          uint8
 	b          uint8
@@ -26,6 +25,7 @@ type Sketch struct {
 	sparse     bool
 	sparseList *compressedList
 	tmpSet     set
+	hash       func(e []byte) uint64
 }
 
 // New ...
@@ -41,7 +41,54 @@ func New(precision uint8) (*Sketch, error) {
 		sparse:     true,
 		tmpSet:     set{},
 		sparseList: newCompressedList(int(m)),
+		hash:       hash,
 	}, nil
+}
+
+// Merge takes another HyperLogLogPlus and combines it with HyperLogLogPlus h.
+// If HyperLogLogPlus h is using the sparse representation, it will be converted
+// to the normal representation.
+func (sk *Sketch) Merge(other *Sketch) error {
+	if other == nil {
+		// Nothing to do
+		return nil
+	}
+
+	if sk.p != other.p {
+		return errors.New("precisions must be equal")
+	}
+
+	if sk.sparse {
+		sk.toNormal()
+	}
+
+	if other.sparse {
+		for k := range other.tmpSet {
+			i, r := decodeHash(k, other.p, pp)
+			if sk.regs.get(i) < r {
+				sk.regs.set(i, r)
+			}
+		}
+
+		for iter := other.sparseList.Iter(); iter.HasNext(); {
+			i, r := decodeHash(iter.Next(), other.p, pp)
+			if sk.regs.get(i) < r {
+				sk.regs.set(i, r)
+			}
+		}
+	} else {
+		for i, v := range other.regs.fields {
+			v1 := v.get(0)
+			if v1 > sk.regs.get(uint32(i)*2) {
+				sk.regs.set(uint32(i)*2, v1)
+			}
+			v2 := v.get(1)
+			if v2 > sk.regs.get(1+uint32(i)*2) {
+				sk.regs.set(1+uint32(i)*2, v2)
+			}
+		}
+	}
+	return nil
 }
 
 // Convert from sparse representation to dense representation.
@@ -50,7 +97,7 @@ func (sk *Sketch) toNormal() {
 		sk.mergeSparse()
 	}
 
-	sk.regs = newRegs(sk.m)
+	sk.regs = newRegisters(sk.m)
 	for iter := sk.sparseList.Iter(); iter.HasNext(); {
 		i, r := decodeHash(iter.Next(), sk.p, pp)
 		sk.insert(i, r)
@@ -80,7 +127,7 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 
 // Insert ...
 func (sk *Sketch) Insert(e []byte) {
-	x := metro.Hash64(e, 1337)
+	x := sk.hash(e)
 	if sk.sparse {
 		sk.tmpSet.add(encodeHash(x, sk.p, pp))
 		if uint32(len(sk.tmpSet))*100 > sk.m {
@@ -188,7 +235,7 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	data = append(data, byte(0))
 
 	// Add the dense sketch representation.
-	sz := len(sk.regs.regs)
+	sz := len(sk.regs.fields)
 	data = append(data, []byte{
 		byte(sz >> 24),
 		byte(sz >> 16),
@@ -197,8 +244,8 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	}...)
 
 	// Marshal each element in the list.
-	for i := 0; i < len(sk.regs.regs); i++ {
-		data = append(data, byte(sk.regs.regs[i]))
+	for i := 0; i < len(sk.regs.fields); i++ {
+		data = append(data, byte(sk.regs.fields[i]))
 	}
 
 	return data, nil
@@ -249,15 +296,15 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	sk.sparseList = nil
 	sk.tmpSet = nil
 	dsz := binary.BigEndian.Uint32(data[4:8])
-	sk.regs = newRegs(dsz * 2)
+	sk.regs = newRegisters(dsz * 2)
 	data = data[8:]
 
 	for i, val := range data {
-		sk.regs.regs[i] = reg(val)
-		if uint8(sk.regs.regs[i]<<4>>4) > 0 {
+		sk.regs.fields[i] = reg(val)
+		if uint8(sk.regs.fields[i]<<4>>4) > 0 {
 			sk.regs.nz--
 		}
-		if uint8(sk.regs.regs[i]>>4) > 0 {
+		if uint8(sk.regs.fields[i]>>4) > 0 {
 			sk.regs.nz--
 		}
 	}

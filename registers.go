@@ -5,17 +5,11 @@ import (
 )
 
 type reg uint8
-type regs []reg
-type rs struct {
-	regs
-	nz uint32
-}
+type fields []reg
 
-func newRegs(size uint32) *rs {
-	return &rs{
-		regs: make(regs, size/2, size/2),
-		nz:   size,
-	}
+type registers struct {
+	fields
+	nz uint32
 }
 
 func (r *reg) set(offset, val uint8) bool {
@@ -39,19 +33,26 @@ func (r *reg) get(offset uint8) uint8 {
 	return uint8((*r) << 4 >> 4)
 }
 
-func (rs *rs) rebase(delta uint8) {
-	nz := uint32(len(rs.regs)) * 2
-	for i := range rs.regs {
-		val := rs.regs[i].get(0)
+func newRegisters(size uint32) *registers {
+	return &registers{
+		fields: make(fields, size/2, size/2),
+		nz:     size,
+	}
+}
+
+func (rs *registers) rebase(delta uint8) {
+	nz := uint32(len(rs.fields)) * 2
+	for i := range rs.fields {
+		val := rs.fields[i].get(0)
 		if val >= delta {
-			rs.regs[i].set(0, val-delta)
+			rs.fields[i].set(0, val-delta)
 			if val-delta > 0 {
 				nz--
 			}
 		}
-		val = rs.regs[i].get(1)
+		val = rs.fields[i].get(1)
 		if val >= delta {
-			rs.regs[i].set(1, val-delta)
+			rs.fields[i].set(1, val-delta)
 			if val-delta > 0 {
 				nz--
 			}
@@ -60,36 +61,36 @@ func (rs *rs) rebase(delta uint8) {
 	rs.nz = nz
 }
 
-func (rs *rs) set(i uint32, val uint8) {
+func (rs *registers) set(i uint32, val uint8) {
 	offset, index := uint8(i%2), i/2
-	if rs.regs[index].set(offset, val) {
+	if rs.fields[index].set(offset, val) {
 		rs.nz--
 	}
 }
 
-func (rs *rs) get(i uint32) uint8 {
+func (rs *registers) get(i uint32) uint8 {
 	offset, index := uint8(i%2), i/2
-	return rs.regs[index].get(offset)
+	return rs.fields[index].get(offset)
 }
 
-func (rs *rs) sum(base uint8) (res float64) {
-	for _, r := range rs.regs {
+func (rs *registers) sum(base uint8) (res float64) {
+	for _, r := range rs.fields {
 		res += 1.0 / math.Pow(2.0, float64(base+r.get(0)))
 		res += 1.0 / math.Pow(2.0, float64(base+r.get(1)))
 	}
 	return res
 }
 
-func (rs *rs) zeros() (res uint32) {
+func (rs *registers) zeros() (res uint32) {
 	return rs.nz
 }
 
-func (rs *rs) min() uint8 {
+func (rs *registers) min() uint8 {
 	if rs.nz > 0 {
 		return 0
 	}
 	min := uint8(math.MaxUint8)
-	for _, r := range rs.regs {
+	for _, r := range rs.fields {
 		if val := uint8(r << 4 >> 4); val < min {
 			min = val
 		}
