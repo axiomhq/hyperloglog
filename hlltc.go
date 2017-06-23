@@ -65,18 +65,20 @@ func (sk *Sketch) Merge(other *Sketch) error {
 	if other.sparse {
 		for k := range other.tmpSet {
 			i, r := decodeHash(k, other.p, pp)
-			if sk.regs.get(i) < r {
-				sk.regs.set(i, r)
-			}
+			sk.insert(i, r)
 		}
 
 		for iter := other.sparseList.Iter(); iter.HasNext(); {
 			i, r := decodeHash(iter.Next(), other.p, pp)
-			if sk.regs.get(i) < r {
-				sk.regs.set(i, r)
-			}
+			sk.insert(i, r)
 		}
 	} else {
+		if sk.b < other.b {
+			sk.regs.rebase(other.b - sk.b)
+		} else {
+			other.regs.rebase(sk.b - other.b)
+		}
+
 		for i, v := range other.regs.fields {
 			v1 := v.get(0)
 			if v1 > sk.regs.get(uint32(i)*2) {
