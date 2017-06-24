@@ -82,7 +82,7 @@ func (sk *Sketch) Merge(other *Sketch) error {
 			cpOther.b = sk.b
 		}
 
-		for i, v := range cpOther.regs.fields {
+		for i, v := range cpOther.regs.tailcuts {
 			v1 := v.get(0)
 			if v1 > sk.regs.get(uint32(i)*2) {
 				sk.regs.set(uint32(i)*2, v1)
@@ -240,7 +240,7 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	data = append(data, byte(0))
 
 	// Add the dense sketch representation.
-	sz := len(sk.regs.fields)
+	sz := len(sk.regs.tailcuts)
 	data = append(data, []byte{
 		byte(sz >> 24),
 		byte(sz >> 16),
@@ -249,8 +249,8 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	}...)
 
 	// Marshal each element in the list.
-	for i := 0; i < len(sk.regs.fields); i++ {
-		data = append(data, byte(sk.regs.fields[i]))
+	for i := 0; i < len(sk.regs.tailcuts); i++ {
+		data = append(data, byte(sk.regs.tailcuts[i]))
 	}
 
 	return data, nil
@@ -305,11 +305,11 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	data = data[8:]
 
 	for i, val := range data {
-		sk.regs.fields[i] = reg(val)
-		if uint8(sk.regs.fields[i]<<4>>4) > 0 {
+		sk.regs.tailcuts[i] = reg(val)
+		if uint8(sk.regs.tailcuts[i]<<4>>4) > 0 {
 			sk.regs.nz--
 		}
-		if uint8(sk.regs.fields[i]>>4) > 0 {
+		if uint8(sk.regs.tailcuts[i]>>4) > 0 {
 			sk.regs.nz--
 		}
 	}
