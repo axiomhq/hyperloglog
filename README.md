@@ -1,10 +1,9 @@
-# hlltc
+# HyperLogLog
 An improved version of [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog) for the count-distinct problem, approximating the number of distinct elements in a multiset **using 20-50% less space** than other usual HyperLogLog implementation.
 
 This work is based on ["Better with fewer bits: Improving the performance of cardinality estimation of large data streams - Qingjun Xiao, You Zhou, Shigang Chen"](http://cse.seu.edu.cn/PersonalPage/csqjxiao/csqjxiao_files/papers/INFOCOM17.pdf).
 
 ## Implementation
-hlltc is an implementation of HyperLogLog-TailCut cardinality estimation algorithm in Go.
 
 The core difference to other implementations are:
 * **use metro hash** instead of xxhash
@@ -33,9 +32,3 @@ A direct comparsion with the [HyperLogLog++ implementation by Clark Duvall](http
 
 ## Note
 A big thank you to Prof. Shigang Chen and his team at the University of Florida who are actively conducting research around "Big Network Data".
-
-## TODO:
-* [ ] more unit test coverage
-* [ ] merging ability 
-* [ ] benchmarks
-* [ ] documentation
