@@ -14,20 +14,20 @@ The core difference to other implementations are:
 In general it borrows a lot from the [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog), but uses **50% less space**.
 
 ## Results
-A direct comparsion with the [HyperLogLog++ implementation by Clark Duvall](https://github.com/clarkduvall/hyperloglog), yielded the following results.
+A direct comparsion with the [HyperLogLog++ implementation used by InfluxDB](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll), yielded the following results.
 
-| Exact | HLLPP | HLLTC |
+| Exact | Influx | Axiom |
 | --- | --- | --- |
 | 10 | 10 (0.0% off) | 10 (0.0% off) |
 | 50 | 50 (0.0% off) | 50 (0.0% off) |
 | 250 | 250 (0.0% off) | 250 (0.0% off) |
 | 1250 | 1249 (0.08% off) | 1249 (0.08% off) |
-| 6250 | **6250 (0.0% off)** | 6249 (0.016% off) |
-| 31250 | 31372 (0.3904% off) | **31338 (0.2816% off)** |
-| 156250 | **157285 (0.6624% off)** | 157302 (0.6733% off) |
-| 781250 |  774560 (0.8563% off) | 774560 (0.8563% off) |
-| 3906250 | **3905577 (0.0172% off)** | 3905562 (0.0176% off) |
-| 10000000 | 10055522 (0.5552% off) | **10055418 (0.5542% off)** |
+| 6250 | 6250 (0.0% off) |  6250 (0.0% off) |
+| 31250 | 31565 (1.0080% off) | **31008 (0.7744% off)** |
+| 156250 | 156652 (0.2573% off) | **156013 (0.1517% off)** |
+| 781250 |  775988 (0.6735% off) |**782364 (0.1426% off)**|
+| 3906250 | **3889909 (0.4183% off)** | 3869332 (0.9451% off) |
+| 10000000 | 9889556 (1.1044% off) | **9952682 (0.4732% off)** |
 
 
 ## Note
