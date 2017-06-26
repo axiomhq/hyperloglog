@@ -227,7 +227,9 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	sk.Insert(toByte(0x00050fffffffffff))
 
 	sk2 := NewTestSketch(16)
-	sk2.Merge(sk)
+	if err := sk2.Merge(sk); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	n := sk2.Estimate()
 	if n != 5 {
 		t.Error(n)
@@ -241,7 +243,9 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 		t.Error("Merge should not modify argument")
 	}
 
-	sk2.Merge(sk)
+	if err := sk2.Merge(sk); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	n = sk2.Estimate()
 	if n != 5 {
 		t.Error(n)
@@ -258,7 +262,9 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 		t.Error(n)
 	}
 
-	sk2.Merge(sk)
+	if err := sk2.Merge(sk); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	n = sk2.Estimate()
 	if n != 11 {
 		t.Error(n)
@@ -275,27 +281,35 @@ func TestHLLTC_Merge_Rebase(t *testing.T) {
 
 	sk1.regs.set(13, 7)
 	sk2.regs.set(13, 1)
-	sk1.Merge(sk2)
+	if err := sk1.Merge(sk2); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	if r := sk1.regs.get(13); r != 7 {
 		t.Error(r)
 	}
 
 	sk2.regs.set(13, 8)
-	sk1.Merge(sk2)
+	if err := sk1.Merge(sk2); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	if r := sk1.regs.get(13); r != 8 {
 		t.Error(r)
 	}
 
 	sk1.b = 12
 	sk2.regs.set(13, 12)
-	sk1.Merge(sk2)
+	if err := sk1.Merge(sk2); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	if r := sk1.regs.get(13); r != 8 {
 		t.Error(r)
 	}
 
 	sk2.b = 13
 	sk2.regs.set(13, 12)
-	sk1.Merge(sk2)
+	if err := sk1.Merge(sk2); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	if r := sk1.regs.get(13); r != 12 {
 		t.Error(r)
 	}
@@ -340,7 +354,9 @@ func TestHLLTC_Merge_Complex(t *testing.T) {
 		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 	}
 
-	sk2.Merge(sk1)
+	if err := sk2.Merge(sk1); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
 	ratio = 100 * estimateError(res1, exact1)
@@ -354,7 +370,9 @@ func TestHLLTC_Merge_Complex(t *testing.T) {
 		unique[str] = true
 	}
 
-	sk2.Merge(sk3)
+	if err := sk2.Merge(sk3); err != nil {
+		t.Error("Expected no error, got", err)
+	}
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
 	ratio = 100 * estimateError(res1, exact1)
@@ -565,11 +583,11 @@ func NewTestSketch(p uint8) *Sketch {
 }
 
 // Generate random data to add to the sketch.
-func genData(n int) [][]byte {
-	out := make([][]byte, 0, n)
+func genData(num int) [][]byte {
+	out := make([][]byte, 0, num)
 	buf := make([]byte, 8)
 
-	for i := 0; i < n; i++ {
+	for i := 0; i < num; i++ {
 		// generate 8 random bytes
 		n, err := rand.Read(buf)
 		if err != nil {
@@ -580,8 +598,8 @@ func genData(n int) [][]byte {
 
 		out = append(out, buf)
 	}
-	if len(out) != n {
-		panic(fmt.Sprintf("wrong size slice: %d", n))
+	if len(out) != num {
+		panic(fmt.Sprintf("wrong size slice: %d", num))
 	}
 	return out
 }

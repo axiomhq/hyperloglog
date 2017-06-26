@@ -91,7 +91,7 @@ func (v *compressedList) UnmarshalBinary(data []byte) error {
 	sz, data := binary.BigEndian.Uint32(data[:4]), data[4:]
 	v.b = make([]uint8, sz)
 	for i := uint32(0); i < sz; i++ {
-		v.b[i] = uint8(data[i])
+		v.b[i] = data[i]
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func (v variableLengthList) MarshalBinary() (data []byte, err error) {
 
 	// Marshal each element in the list.
 	for i := 0; i < sz; i++ {
-		data = append(data, byte(v[i]))
+		data = append(data, v[i])
 	}
 
 	return data, nil

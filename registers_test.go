@@ -7,7 +7,7 @@ import (
 
 func TestRegistersGetSetSum(t *testing.T) {
 	length := uint32(16777216)
-	data := make([]uint8, length, length)
+	data := make([]uint8, length)
 	r := newRegisters(length)
 
 	for i := range data {

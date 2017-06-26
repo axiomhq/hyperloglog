@@ -15,17 +15,20 @@ const (
 	version  = 1
 )
 
-// Sketch ...
+// Sketch is a HyperLogLog data-structure for the count-distinct problem,
+// approximating the number of distinct elements in a multiset.
 type Sketch struct {
-	regs       *registers
-	m          uint32
-	p          uint8
-	b          uint8
-	alpha      float64
-	sparse     bool
+	sparse bool
+	p      uint8
+	b      uint8
+	m      uint32
+	alpha  float64
+
+	tmpSet set
+	hash   func(e []byte) uint64
+
 	sparseList *compressedList
-	tmpSet     set
-	hash       func(e []byte) uint64
+	regs       *registers
 }
 
 // New ...
@@ -125,7 +128,7 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 	if r > sk.b {
 		val := uint8(math.Min(float64(r-sk.b), float64(capacity-1)))
 		if val > sk.regs.get(i) {
-			sk.regs.set(i, uint8(val))
+			sk.regs.set(i, val)
 		}
 	}
 }
@@ -151,7 +154,7 @@ func (sk *Sketch) Insert(e []byte) {
 func (sk *Sketch) Estimate() uint64 {
 	if sk.sparse {
 		sk.mergeSparse()
-		return uint64(linearCount(mp, mp-uint32(sk.sparseList.count)))
+		return uint64(linearCount(mp, mp-sk.sparseList.count))
 	}
 
 	sum, ez := sk.regs.sumAndZeros(sk.b)
@@ -212,9 +215,9 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	// Marshal a version marker.
 	data = append(data, version)
 	// Marshal p.
-	data = append(data, byte(sk.p))
+	data = append(data, sk.p)
 	// Marshal b
-	data = append(data, byte(sk.b))
+	data = append(data, sk.b)
 
 	if sk.sparse {
 		// It's using the sparse Sketch.
@@ -262,7 +265,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	_ = data[0]
 
 	// Unmarshal p.
-	p := uint8(data[1])
+	p := data[1]
 
 	newh, err := New(p)
 	if err != nil {
@@ -271,7 +274,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	*sk = *newh
 
 	// Unmarshal b.
-	sk.b = uint8(data[2])
+	sk.b = data[2]
 
 	// h is now initialised with the correct p. We just need to fill the
 	// rest of the details out.

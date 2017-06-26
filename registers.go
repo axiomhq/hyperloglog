@@ -13,11 +13,11 @@ type registers struct {
 }
 
 func (r *reg) set(offset, val uint8) bool {
-	isZero := false
+	var isZero bool
 	if offset == 0 {
 		isZero = uint8((*r)>>4) == 0
 		tmpVal := uint8((*r) << 4 >> 4)
-		*r = reg(uint8(tmpVal) | (val << 4))
+		*r = reg(tmpVal | (val << 4))
 	} else {
 		isZero = uint8((*r)<<4>>4) == 0
 		tmpVal := uint8((*r) >> 4)
@@ -35,7 +35,7 @@ func (r *reg) get(offset uint8) uint8 {
 
 func newRegisters(size uint32) *registers {
 	return &registers{
-		tailcuts: make(tailcuts, size/2, size/2),
+		tailcuts: make(tailcuts, size/2),
 		nz:       size,
 	}
 }
