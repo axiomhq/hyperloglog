@@ -1,4 +1,4 @@
-package hlltc
+package hyperloglog
 
 import "encoding/binary"
 
