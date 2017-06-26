@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	hyperloglog "github.com/influxdata/influxdb/pkg/estimator/hll"
-	"github.com/seiflotfy/hlltc"
+	"github.com/axiomhq/hyperloglog"
+	"github.com/influxdata/influxdb/pkg/estimator/hll"
 )
 
 type fakeHash64 uint64
@@ -24,7 +24,7 @@ func estimateError(got, exp uint64) float64 {
 
 func main() {
 	hlltc, _ := hlltc.New(14)
-	hllpp, _ := hyperloglog.NewPlus(14)
+	hllpp, _ := hll.NewPlus(14)
 
 	step := 10
 	unique := map[string]bool{}
