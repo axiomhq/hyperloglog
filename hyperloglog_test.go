@@ -137,7 +137,7 @@ func TestHLLTC_toNormal(t *testing.T) {
 	sk.toNormal()
 	c := sk.Estimate()
 	// FIXME: Maybe add proper low range non-sparse cardinality calculation?
-	if c != 2 {
+	if c != 1 {
 		t.Error(c)
 	}
 
@@ -230,7 +230,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	sk2 := NewTestSketch(16)
 	sk2.Merge(sk)
 	n := sk2.Estimate()
-	if n != 6 {
+	if n != 5 {
 		t.Error(n)
 	}
 
@@ -244,7 +244,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 
 	sk2.Merge(sk)
 	n = sk2.Estimate()
-	if n != 6 {
+	if n != 5 {
 		t.Error(n)
 	}
 

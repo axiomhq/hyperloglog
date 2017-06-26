@@ -73,16 +73,22 @@ func (rs *registers) get(i uint32) uint8 {
 	return rs.tailcuts[index].get(offset)
 }
 
-func (rs *registers) sum(base uint8) (res float64) {
+func (rs *registers) sumAndZeros(base uint8) (res, ez float64) {
 	for _, r := range rs.tailcuts {
-		res += 1.0 / math.Pow(2.0, float64(base+r.get(0)))
+		v1 := float64(base + r.get(0))
+		if v1 == 0 {
+			ez++
+		}
+		res += 1.0 / math.Pow(2.0, v1)
+		v2 := float64(base + r.get(0))
+		if v2 == 0 {
+			ez++
+		}
 		res += 1.0 / math.Pow(2.0, float64(base+r.get(1)))
-	}
-	return res
-}
 
-func (rs *registers) zeros() (res uint32) {
-	return rs.nz
+	}
+	rs.nz = uint32(ez)
+	return res, ez
 }
 
 func (rs *registers) min() uint8 {

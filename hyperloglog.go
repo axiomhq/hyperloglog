@@ -130,7 +130,7 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 	}
 }
 
-// Insert ...
+// Insert adds element e to sketch
 func (sk *Sketch) Insert(e []byte) {
 	x := sk.hash(e)
 	if sk.sparse {
@@ -147,15 +147,14 @@ func (sk *Sketch) Insert(e []byte) {
 	}
 }
 
-// Estimate ...
+// Estimate returns the cardinality of the Sketch
 func (sk *Sketch) Estimate() uint64 {
 	if sk.sparse {
 		sk.mergeSparse()
 		return uint64(linearCount(mp, mp-uint32(sk.sparseList.count)))
 	}
 
-	sum := float64(sk.regs.sum(sk.b))
-	ez := float64(sk.regs.zeros())
+	sum, ez := sk.regs.sumAndZeros(sk.b)
 	m := float64(sk.m)
 	var est float64
 
