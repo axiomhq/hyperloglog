@@ -16,18 +16,18 @@ In general it borrows a lot from the [InfluxData's fork](https://github.com/infl
 ## Results
 A direct comparsion with the [HyperLogLog++ implementation used by InfluxDB](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll), yielded the following results.
 
-| Exact | Influx | Axiom |
+| Exact | Axiom | Influx |
 | --- | --- | --- |
-| 10 | 10 (0.0% off) | 10 (0.0% off) |
-| 50 | 50 (0.0% off) | 50 (0.0% off) |
-| 250 | 250 (0.0% off) | 250 (0.0% off) |
+| 10 | 10 (0.0% off) | 10 (0.0% off) | 
+| 50 |  50 (0.0% off) | 50 (0.0% off) |
+| 250 | 250 (0.0% off) | 250 (0.0% off) | 
 | 1250 | 1249 (0.08% off) | 1249 (0.08% off) |
-| 6250 | 6250 (0.0% off) |  6250 (0.0% off) |
-| 31250 | 31565 (1.0080% off) | **31008 (0.7744% off)** |
-| 156250 | 156652 (0.2573% off) | **156013 (0.1517% off)** |
-| 781250 |  775988 (0.6735% off) |**782364 (0.1426% off)**|
-| 3906250 | **3889909 (0.4183% off)** | 3869332 (0.9451% off) |
-| 10000000 | 9889556 (1.1044% off) | **9952682 (0.4732% off)** |
+| 6250 | 6250 (0.0% off) | 6250 (0.0% off) |
+| 31250 | **31008 (0.7744% off)** | 31565 (1.0080% off) |
+| 156250 | **156013 (0.1517% off)** | 156652 (0.2573% off) |
+| 781250 | **782364 (0.1426% off)** | 775988 (0.6735% off) |
+| 3906250 | 3869332 (0.9451% off) | **3889909 (0.4183% off)** |
+| 10000000 | **9952682 (0.4732% off)** |9889556 (1.1044% off) |
 
 
 ## Note
