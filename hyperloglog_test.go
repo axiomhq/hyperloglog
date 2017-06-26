@@ -136,8 +136,7 @@ func TestHLLTC_toNormal(t *testing.T) {
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.toNormal()
 	c := sk.Estimate()
-	// FIXME: Maybe add proper low range non-sparse cardinality calculation?
-	if c != 2 {
+	if c != 1 {
 		t.Error(c)
 	}
 
@@ -230,7 +229,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	sk2 := NewTestSketch(16)
 	sk2.Merge(sk)
 	n := sk2.Estimate()
-	if n != 6 {
+	if n != 5 {
 		t.Error(n)
 	}
 
@@ -244,7 +243,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 
 	sk2.Merge(sk)
 	n = sk2.Estimate()
-	if n != 6 {
+	if n != 5 {
 		t.Error(n)
 	}
 
@@ -641,4 +640,57 @@ func Benchmark_Add_10000000(b *testing.B) {
 func Benchmark_Add_100000000(b *testing.B) {
 	sk, _ := New(16)
 	benchmarkAdd(b, sk, 100000000)
+}
+
+func randStr(n int) string {
+	i := rand.Uint32()
+	return fmt.Sprintf("a%d %d", i, n)
+}
+
+func benchmark(precision uint8, n int) {
+	hll, _ := New(precision)
+
+	for i := 0; i < n; i++ {
+		s := []byte(randStr(i))
+		hll.Insert(s)
+		hll.Insert(s)
+	}
+
+	e := hll.Estimate()
+	var percentErr = func(est uint64) float64 {
+		return 100 * math.Abs(float64(n)-float64(est)) / float64(n)
+	}
+
+	fmt.Printf("\nReal Cardinality: %8d\n", n)
+	fmt.Printf("HyperLogLog     : %8d,   Error: %f%%\n", e, percentErr(e))
+}
+
+func BenchmarkHll4(b *testing.B) {
+	fmt.Println("")
+	benchmark(4, b.N)
+}
+
+func BenchmarkHll6(b *testing.B) {
+	fmt.Println("")
+	benchmark(6, b.N)
+}
+
+func BenchmarkHll8(b *testing.B) {
+	fmt.Println("")
+	benchmark(8, b.N)
+}
+
+func BenchmarkHll10(b *testing.B) {
+	fmt.Println("")
+	benchmark(10, b.N)
+}
+
+func BenchmarkHll14(b *testing.B) {
+	fmt.Println("")
+	benchmark(14, b.N)
+}
+
+func BenchmarkHll16(b *testing.B) {
+	fmt.Println("")
+	benchmark(16, b.N)
 }
