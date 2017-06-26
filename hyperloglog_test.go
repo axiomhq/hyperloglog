@@ -590,7 +590,7 @@ func genData(n int) [][]byte {
 // Memoises values to be added to a sketch during a benchmark.
 var benchdata = map[int][][]byte{}
 
-func benchmarkPlusAdd(b *testing.B, sk *Sketch, n int) {
+func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
 	blobs, ok := benchdata[n]
 	if !ok {
 		// Generate it.
@@ -608,37 +608,37 @@ func benchmarkPlusAdd(b *testing.B, sk *Sketch, n int) {
 	b.StopTimer()
 }
 
-func BenchmarkPlus_Add_100(b *testing.B) {
+func Benchmark_Add_100(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 100)
+	benchmarkAdd(b, sk, 100)
 }
 
-func BenchmarkPlus_Add_1000(b *testing.B) {
+func Benchmark_Add_1000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 1000)
+	benchmarkAdd(b, sk, 1000)
 }
 
-func BenchmarkPlus_Add_10000(b *testing.B) {
+func Benchmark_Add_10000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 10000)
+	benchmarkAdd(b, sk, 10000)
 }
 
-func BenchmarkPlus_Add_100000(b *testing.B) {
+func Benchmark_Add_100000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 100000)
+	benchmarkAdd(b, sk, 100000)
 }
 
-func BenchmarkPlus_Add_1000000(b *testing.B) {
+func Benchmark_Add_1000000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 1000000)
+	benchmarkAdd(b, sk, 1000000)
 }
 
-func BenchmarkPlus_Add_10000000(b *testing.B) {
+func Benchmark_Add_10000000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 10000000)
+	benchmarkAdd(b, sk, 10000000)
 }
 
-func BenchmarkPlus_Add_100000000(b *testing.B) {
+func Benchmark_Add_100000000(b *testing.B) {
 	sk, _ := New(16)
-	benchmarkPlusAdd(b, sk, 100000000)
+	benchmarkAdd(b, sk, 100000000)
 }

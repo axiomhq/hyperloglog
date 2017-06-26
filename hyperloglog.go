@@ -45,9 +45,9 @@ func New(precision uint8) (*Sketch, error) {
 	}, nil
 }
 
-// Merge takes another HyperLogLogPlus and combines it with HyperLogLogPlus h.
-// If HyperLogLogPlus h is using the sparse representation, it will be converted
-// to the normal representation.
+// Merge takes another Sketch and combines it with Sketch h.
+// If Sketch h is using the sparse Sketch, it will be converted
+// to the normal Sketch.
 func (sk *Sketch) Merge(other *Sketch) error {
 	if other == nil {
 		// Nothing to do
@@ -96,7 +96,7 @@ func (sk *Sketch) Merge(other *Sketch) error {
 	return nil
 }
 
-// Convert from sparse representation to dense representation.
+// Convert from sparse Sketch to dense Sketch.
 func (sk *Sketch) toNormal() {
 	if len(sk.tmpSet) > 0 {
 		sk.mergeSparse()
@@ -218,7 +218,7 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	data = append(data, byte(sk.b))
 
 	if sk.sparse {
-		// It's using the sparse representation.
+		// It's using the sparse Sketch.
 		data = append(data, byte(1))
 
 		// Add the tmp_set
@@ -228,7 +228,7 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 		}
 		data = append(data, tsdata...)
 
-		// Add the sparse representation
+		// Add the sparse Sketch
 		sdata, err := sk.sparseList.MarshalBinary()
 		if err != nil {
 			return nil, err
@@ -236,10 +236,10 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 		return append(data, sdata...), nil
 	}
 
-	// It's using the dense representation.
+	// It's using the dense Sketch.
 	data = append(data, byte(0))
 
-	// Add the dense sketch representation.
+	// Add the dense sketch Sketch.
 	sz := len(sk.regs.tailcuts)
 	data = append(data, []byte{
 		byte(sz >> 24),
@@ -277,7 +277,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	// h is now initialised with the correct p. We just need to fill the
 	// rest of the details out.
 	if data[3] == byte(1) {
-		// Using the sparse representation.
+		// Using the sparse Sketch.
 		sk.sparse = true
 
 		// Unmarshal the tmp_set.
@@ -292,11 +292,11 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 			sk.tmpSet[k] = struct{}{}
 		}
 
-		// Unmarshal the sparse representation.
+		// Unmarshal the sparse Sketch.
 		return sk.sparseList.UnmarshalBinary(data[tsLastByte:])
 	}
 
-	// Using the dense representation.
+	// Using the dense Sketch.
 	sk.sparse = false
 	sk.sparseList = nil
 	sk.tmpSet = nil
