@@ -16,7 +16,7 @@ In general it borrows a lot from [InfluxData's fork](https://github.com/influxda
 ## Results
 A direct comparison with the [HyperLogLog++ implementation used by InfluxDB](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) yielded the following results:
 
-| Exact | Axiom | Influx |
+| Exact | Axiom (8.2 KB) | Influx (16.39 KB) |
 | --- | --- | --- |
 | 10 | 10 (0.0% off) | 10 (0.0% off) |
 | 50 |  50 (0.0% off) | 50 (0.0% off) |
