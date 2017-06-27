@@ -5,22 +5,22 @@ This work is based on ["Better with fewer bits: Improving the performance of car
 
 ## Implementation
 
-The core difference to other implementations are:
+The core differences between this and other implementations are:
 * **use metro hash** instead of xxhash
-* **sparse representation** for lower cadinalities (like HyperLogLog++)
+* **sparse representation** for lower cardinalities (like HyperLogLog++)
 * **loglog-beta** for dynamic bias correction medium and high cardinalities.
-* **4-bit register** instead of 5 (HLL) and 6 (HLL++), but most implementations use 1 byte registers out of convinience
+* **4-bit register** instead of 5 (HLL) and 6 (HLL++), but most implementations use 1-byte registers out of convenience
 
-In general it borrows a lot from the [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog), but uses **50% less space**.
+In general it borrows a lot from [InfluxData's fork](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) of [Clark Duvall's HyperLogLog++ implementation](https://github.com/clarkduvall/hyperloglog), but uses **50% less space**.
 
 ## Results
-A direct comparsion with the [HyperLogLog++ implementation used by InfluxDB](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll), yielded the following results.
+A direct comparison with the [HyperLogLog++ implementation used by InfluxDB](https://github.com/influxdata/influxdb/tree/master/pkg/estimator/hll) yielded the following results:
 
 | Exact | Axiom | Influx |
 | --- | --- | --- |
-| 10 | 10 (0.0% off) | 10 (0.0% off) | 
+| 10 | 10 (0.0% off) | 10 (0.0% off) |
 | 50 |  50 (0.0% off) | 50 (0.0% off) |
-| 250 | 250 (0.0% off) | 250 (0.0% off) | 
+| 250 | 250 (0.0% off) | 250 (0.0% off) |
 | 1250 | 1249 (0.08% off) | 1249 (0.08% off) |
 | 6250 | 6250 (0.0% off) | 6250 (0.0% off) |
 | 31250 | **31008 (0.7744% off)** | 31565 (1.0080% off) |
