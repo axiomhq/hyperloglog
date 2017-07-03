@@ -6,7 +6,7 @@ import (
 	bits "github.com/dgryski/go-bits"
 )
 
-func beta(ez float64) float64 {
+func beta14(ez float64) float64 {
 	zl := math.Log(ez + 1)
 	return -0.370393911*ez +
 		0.070471823*zl +
@@ -16,6 +16,18 @@ func beta(ez float64) float64 {
 		0.03738027*math.Pow(zl, 5) +
 		-0.005384159*math.Pow(zl, 6) +
 		0.00042419*math.Pow(zl, 7)
+}
+
+func beta16(ez float64) float64 {
+	zl := math.Log(ez + 1)
+	return -0.37331876643753059*ez +
+		-1.41704077448122989*zl +
+		0.40729184796612533*math.Pow(zl, 2) +
+		1.56152033906584164*math.Pow(zl, 3) +
+		-0.99242233534286128*math.Pow(zl, 4) +
+		0.26064681399483092*math.Pow(zl, 5) +
+		-0.03053811369682807*math.Pow(zl, 6) +
+		0.00155770210179105*math.Pow(zl, 7)
 }
 
 func alpha(m float64) float64 {

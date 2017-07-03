@@ -161,6 +161,13 @@ func (sk *Sketch) Estimate() uint64 {
 	m := float64(sk.m)
 	var est float64
 
+	var beta func(float64) float64
+	if sk.m < 16 {
+		beta = beta14
+	} else {
+		beta = beta16
+	}
+
 	if sk.b == 0 {
 		est = (sk.alpha * m * (m - ez) / (sum + beta(ez))) + 0.5
 	} else {
