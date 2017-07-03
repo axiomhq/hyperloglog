@@ -61,6 +61,16 @@ func (sk *Sketch) Clone() *Sketch {
 	}
 }
 
+// Converts to normal if the sparse list is too large.
+func (sk *Sketch) maybeToNormal() {
+	if uint32(len(sk.tmpSet))*100 > sk.m {
+		sk.mergeSparse()
+		if uint32(sk.sparseList.Len()) > sk.m {
+			sk.toNormal()
+		}
+	}
+}
+
 // Merge takes another Sketch and combines it with Sketch h.
 // If Sketch h is using the sparse Sketch, it will be converted
 // to the normal Sketch.
@@ -73,6 +83,17 @@ func (sk *Sketch) Merge(other *Sketch) error {
 
 	if sk.p != cpOther.p {
 		return errors.New("precisions must be equal")
+	}
+
+	if sk.sparse && other.sparse {
+		for k := range other.tmpSet {
+			sk.tmpSet.add(k)
+		}
+		for iter := other.sparseList.Iter(); iter.HasNext(); {
+			sk.tmpSet.add(iter.Next())
+		}
+		sk.maybeToNormal()
+		return nil
 	}
 
 	if sk.sparse {

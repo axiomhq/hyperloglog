@@ -41,6 +41,9 @@ func newRegisters(size uint32) *registers {
 }
 
 func (rs *registers) clone() *registers {
+	if rs == nil {
+		return nil
+	}
 	var tc []reg
 	copy(tc, rs.tailcuts)
 	return &registers{
