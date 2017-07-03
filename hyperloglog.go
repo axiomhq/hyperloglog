@@ -48,6 +48,19 @@ func New(precision uint8) (*Sketch, error) {
 	}, nil
 }
 
+// Clone returns a deep copy of sk.
+func (sk *Sketch) Clone() *Sketch {
+	return &Sketch{
+		p:          sk.p,
+		m:          sk.m,
+		alpha:      sk.alpha,
+		sparse:     sk.sparse,
+		tmpSet:     sk.tmpSet.Clone(),
+		sparseList: sk.sparseList.Clone(),
+		regs:       sk.regs.clone(),
+	}
+}
+
 // Merge takes another Sketch and combines it with Sketch h.
 // If Sketch h is using the sparse Sketch, it will be converted
 // to the normal Sketch.
@@ -56,7 +69,7 @@ func (sk *Sketch) Merge(other *Sketch) error {
 		// Nothing to do
 		return nil
 	}
-	cpOther := *other
+	cpOther := other.Clone()
 
 	if sk.p != cpOther.p {
 		return errors.New("precisions must be equal")

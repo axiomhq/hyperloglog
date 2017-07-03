@@ -40,6 +40,18 @@ type set map[uint32]struct{}
 func (s set) add(v uint32)      { s[v] = struct{}{} }
 func (s set) has(v uint32) bool { _, ok := s[v]; return ok }
 
+func (s set) Clone() set {
+	if s == nil {
+		return nil
+	}
+
+	newS := make(map[uint32]struct{}, len(s))
+	for k, v := range s {
+		newS[k] = v
+	}
+	return newS
+}
+
 func (s set) MarshalBinary() (data []byte, err error) {
 	// 4 bytes for the size of the set, and 4 bytes for each key.
 	// list.

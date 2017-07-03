@@ -40,6 +40,15 @@ func newRegisters(size uint32) *registers {
 	}
 }
 
+func (rs *registers) clone() *registers {
+	var tc []reg
+	copy(tc, rs.tailcuts)
+	return &registers{
+		tailcuts: tc,
+		nz:       rs.nz,
+	}
+}
+
 func (rs *registers) rebase(delta uint8) {
 	nz := uint32(len(rs.tailcuts)) * 2
 	for i := range rs.tailcuts {
