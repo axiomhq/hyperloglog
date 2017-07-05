@@ -73,6 +73,7 @@ func (sk *Sketch) Clone() *Sketch {
 		tmpSet:     sk.tmpSet.Clone(),
 		sparseList: sk.sparseList.Clone(),
 		regs:       sk.regs.clone(),
+		hash:       sk.hash,
 	}
 }
 

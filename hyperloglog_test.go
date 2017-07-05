@@ -575,6 +575,35 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	}
 }
 
+func TestHLLTC_Clone(t *testing.T) {
+	sk := NewTestSketch(4)
+	sk2 := sk.Clone()
+
+	if sk.alpha != sk2.alpha {
+		t.Fatalf("got alpha %v, expected %v", sk2.alpha, sk.alpha)
+	}
+
+	if sk.p != sk2.p {
+		t.Fatalf("got p %v, expected %v", sk2.p, sk.p)
+	}
+
+	if sk.b != sk2.b {
+		t.Fatalf("got b %v, expected %v", sk2.b, sk.b)
+	}
+
+	if sk.m != sk2.m {
+		t.Fatalf("got m %v, expected %v", sk2.m, sk.m)
+	}
+
+	if !reflect.DeepEqual(*sk.sparseList, *sk2.sparseList) {
+		t.Fatalf("got sparseList %v, expected %v", sk2.sparseList, sk.sparseList)
+	}
+
+	if sk.regs != sk2.regs {
+		t.Fatalf("got regs %v, expected %v", sk2.regs, sk.regs)
+	}
+}
+
 func NewTestSketch(p uint8) *Sketch {
 	sk, _ := new(p)
 	hash = nopHash
