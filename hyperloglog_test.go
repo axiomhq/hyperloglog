@@ -575,32 +575,55 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	}
 }
 
-func TestHLLTC_Clone(t *testing.T) {
-	sk := NewTestSketch(4)
-	sk2 := sk.Clone()
+func TestHLLTC_Clone_Basic(t *testing.T) {
+	sk1 := NewTestSketch(4)
+	sk2 := sk1.Clone()
 
-	if sk.alpha != sk2.alpha {
-		t.Fatalf("got alpha %v, expected %v", sk2.alpha, sk.alpha)
+	testSketchProperties(sk1, sk2, t)
+}
+
+func TestHLLTC_Clone_Populated(t *testing.T) {
+	sk1 := NewTestSketch(16)
+
+	sk1.Insert(toByte(0x00010fffffffffff))
+	sk1.Insert(toByte(0x0002ffffffffffff))
+	sk1.Insert(toByte(0x0003000000000000))
+	sk1.Insert(toByte(0x0003000000000001))
+	sk1.Insert(toByte(0xff03700000000000))
+
+	n := sk1.Estimate()
+	if n != 5 {
+		t.Error(n)
 	}
 
-	if sk.p != sk2.p {
-		t.Fatalf("got p %v, expected %v", sk2.p, sk.p)
+	sk2 := sk1.Clone()
+
+	testSketchProperties(sk1, sk2, t)
+}
+
+func testSketchProperties(sk1, sk2 *Sketch, t *testing.T) {
+	if sk1.alpha != sk2.alpha {
+		t.Fatalf("got alpha %v, expected %v", sk2.alpha, sk1.alpha)
 	}
 
-	if sk.b != sk2.b {
-		t.Fatalf("got b %v, expected %v", sk2.b, sk.b)
+	if sk1.p != sk2.p {
+		t.Fatalf("got p %v, expected %v", sk2.p, sk1.p)
 	}
 
-	if sk.m != sk2.m {
-		t.Fatalf("got m %v, expected %v", sk2.m, sk.m)
+	if sk1.b != sk2.b {
+		t.Fatalf("got b %v, expected %v", sk2.b, sk1.b)
 	}
 
-	if !reflect.DeepEqual(*sk.sparseList, *sk2.sparseList) {
-		t.Fatalf("got sparseList %v, expected %v", sk2.sparseList, sk.sparseList)
+	if sk1.m != sk2.m {
+		t.Fatalf("got m %v, expected %v", sk2.m, sk1.m)
 	}
 
-	if sk.regs != sk2.regs {
-		t.Fatalf("got regs %v, expected %v", sk2.regs, sk.regs)
+	if !reflect.DeepEqual(*sk1.sparseList, *sk2.sparseList) {
+		t.Fatalf("got sparseList %v, expected %v", sk2.sparseList, sk1.sparseList)
+	}
+
+	if sk1.regs != sk2.regs {
+		t.Fatalf("got regs %v, expected %v", sk2.regs, sk1.regs)
 	}
 }
 
