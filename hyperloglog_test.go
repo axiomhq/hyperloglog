@@ -29,7 +29,7 @@ func nopHash(buf []byte) uint64 {
 	return binary.BigEndian.Uint64(buf)
 }
 func TestHLLTC_CardinalityHashed(t *testing.T) {
-	hlltc, err := New(14)
+	hlltc, err := new(14)
 	if err != nil {
 		t.Error("expected no error, got", err)
 	}
@@ -319,15 +319,15 @@ func TestHLLTC_Merge_Rebase(t *testing.T) {
 }
 
 func TestHLLTC_Merge_Complex(t *testing.T) {
-	sk1, err := New(14)
+	sk1, err := new(14)
 	if err != nil {
 		t.Error("expected no error, got", err)
 	}
-	sk2, err := New(14)
+	sk2, err := new(14)
 	if err != nil {
 		t.Error("expected no error, got", err)
 	}
-	sk3, err := New(14)
+	sk3, err := new(14)
 	if err != nil {
 		t.Error("expected no error, got", err)
 	}
@@ -429,24 +429,24 @@ func TestHLLTC_EncodeDecode(t *testing.T) {
 }
 
 func TestHLLTC_Error(t *testing.T) {
-	_, err := New(3)
+	_, err := new(3)
 	if err == nil {
 		t.Error("precision 3 should return error")
 	}
 
-	_, err = New(18)
+	_, err = new(18)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = New(19)
+	_, err = new(19)
 	if err == nil {
 		t.Error("precision 19 should return error")
 	}
 }
 
 func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
-	sk, _ := New(4)
+	sk, _ := new(4)
 	sk.sparse = true
 	sk.tmpSet = map[uint32]struct{}{26: struct{}{}, 40: struct{}{}}
 
@@ -480,7 +480,7 @@ func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 }
 
 func TestHLLTC_Marshal_Unmarshal_Dense(t *testing.T) {
-	sk, _ := New(4)
+	sk, _ := new(4)
 	sk.sparse = false
 	sk.toNormal()
 
@@ -521,7 +521,7 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	}
 
 	count := make(map[string]struct{}, 1000000)
-	sk, _ := New(16)
+	sk, _ := new(16)
 
 	buf := make([]byte, 8)
 	for i := 0; i < 1000000; i++ {
@@ -580,7 +580,7 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 }
 
 func NewTestSketch(p uint8) *Sketch {
-	sk, _ := New(p)
+	sk, _ := new(p)
 	sk.hash = nopHash
 	return sk
 }
@@ -629,37 +629,37 @@ func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
 }
 
 func Benchmark_Add_100(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 100)
 }
 
 func Benchmark_Add_1000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 1000)
 }
 
 func Benchmark_Add_10000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 10000)
 }
 
 func Benchmark_Add_100000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 100000)
 }
 
 func Benchmark_Add_1000000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 1000000)
 }
 
 func Benchmark_Add_10000000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 10000000)
 }
 
 func Benchmark_Add_100000000(b *testing.B) {
-	sk, _ := New(16)
+	sk, _ := new(16)
 	benchmarkAdd(b, sk, 100000000)
 }
 
@@ -669,7 +669,7 @@ func randStr(n int) string {
 }
 
 func benchmark(precision uint8, n int) {
-	hll, _ := New(precision)
+	hll, _ := new(precision)
 
 	for i := 0; i < n; i++ {
 		s := []byte(randStr(i))

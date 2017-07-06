@@ -31,8 +31,25 @@ type Sketch struct {
 	regs       *registers
 }
 
-// New ...
-func New(precision uint8) (*Sketch, error) {
+//New returns a HyperLogLog Sketch with 2^14 registers (precision 14)
+func New() *Sketch {
+	return New14()
+}
+
+//New14 returns a HyperLogLog Sketch with 2^14 registers (precision 14)
+func New14() *Sketch {
+	sk, _ := new(14)
+	return sk
+}
+
+//New16 returns a HyperLogLog Sketch with 2^16 registers (precision 16)
+func New16() *Sketch {
+	sk, _ := new(14)
+	return sk
+}
+
+// New returns a HyperLogLog Sketch with 2^precision registers
+func new(precision uint8) (*Sketch, error) {
 	if precision < 4 || precision > 18 {
 		return nil, fmt.Errorf("p has to be >= 4 and <= 18")
 	}
@@ -309,7 +326,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	// Unmarshal p.
 	p := data[1]
 
-	newh, err := New(p)
+	newh, err := new(p)
 	if err != nil {
 		return err
 	}
