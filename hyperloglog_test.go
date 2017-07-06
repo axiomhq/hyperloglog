@@ -235,7 +235,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 		t.Error(n)
 	}
 
-	if sk2.sparse {
+	if !sk2.sparse {
 		t.Error("Merge should convert to normal")
 	}
 
@@ -266,7 +266,7 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 		t.Error("Expected no error, got", err)
 	}
 	n = sk2.Estimate()
-	if n != 11 {
+	if n != 10 {
 		t.Error(n)
 	}
 }
@@ -291,6 +291,9 @@ func TestHLLTC_Merge_Rebase(t *testing.T) {
 	sk2.regs.set(13, 8)
 	if err := sk1.Merge(sk2); err != nil {
 		t.Error("Expected no error, got", err)
+	}
+	if r := sk2.regs.get(13); r != 8 {
+		t.Error(r)
 	}
 	if r := sk1.regs.get(13); r != 8 {
 		t.Error(r)

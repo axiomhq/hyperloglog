@@ -51,6 +51,7 @@ func New(precision uint8) (*Sketch, error) {
 // Clone returns a deep copy of sk.
 func (sk *Sketch) Clone() *Sketch {
 	return &Sketch{
+		b:          sk.b,
 		p:          sk.p,
 		m:          sk.m,
 		alpha:      sk.alpha,
