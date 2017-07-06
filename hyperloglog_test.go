@@ -472,8 +472,6 @@ func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 
 	// reflect.DeepEqual will always return false when comparing non-nil
 	// functions, so we'll set them to nil.
-	res.hash = nil
-	sk.hash = nil
 	if got, exp := &res, sk; !reflect.DeepEqual(got, exp) {
 		t.Fatalf("got %v, wanted %v", spew.Sdump(got), spew.Sdump(exp))
 	}
@@ -506,8 +504,6 @@ func TestHLLTC_Marshal_Unmarshal_Dense(t *testing.T) {
 
 	// reflect.DeepEqual will always return false when comparing non-nil
 	// functions, so we'll set them to nil.
-	res.hash = nil
-	sk.hash = nil
 	if got, exp := &res, sk; !reflect.DeepEqual(got, exp) {
 		t.Fatalf("got %v, wanted %v", spew.Sdump(got), spew.Sdump(exp))
 	}
@@ -581,7 +577,7 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 
 func NewTestSketch(p uint8) *Sketch {
 	sk, _ := new(p)
-	sk.hash = nopHash
+	hash = nopHash
 	return sk
 }
 

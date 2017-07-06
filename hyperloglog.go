@@ -18,15 +18,12 @@ const (
 // Sketch is a HyperLogLog data-structure for the count-distinct problem,
 // approximating the number of distinct elements in a multiset.
 type Sketch struct {
-	sparse bool
-	p      uint8
-	b      uint8
-	m      uint32
-	alpha  float64
-
-	tmpSet set
-	hash   func(e []byte) uint64
-
+	sparse     bool
+	p          uint8
+	b          uint8
+	m          uint32
+	alpha      float64
+	tmpSet     set
 	sparseList *compressedList
 	regs       *registers
 }
@@ -50,6 +47,7 @@ func New16() *Sketch {
 
 // New returns a HyperLogLog Sketch with 2^precision registers
 func new(precision uint8) (*Sketch, error) {
+	hash = hashFunc
 	if precision < 4 || precision > 18 {
 		return nil, fmt.Errorf("p has to be >= 4 and <= 18")
 	}
@@ -61,7 +59,6 @@ func new(precision uint8) (*Sketch, error) {
 		sparse:     true,
 		tmpSet:     set{},
 		sparseList: newCompressedList(int(m)),
-		hash:       hash,
 	}, nil
 }
 
@@ -187,7 +184,7 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 
 // Insert adds element e to sketch
 func (sk *Sketch) Insert(e []byte) {
-	x := sk.hash(e)
+	x := hash(e)
 	if sk.sparse {
 		sk.tmpSet.add(encodeHash(x, sk.p, pp))
 		if uint32(len(sk.tmpSet))*100 > sk.m {
