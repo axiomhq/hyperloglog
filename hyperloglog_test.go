@@ -448,7 +448,7 @@ func TestHLLTC_Error(t *testing.T) {
 func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 	sk, _ := new(4)
 	sk.sparse = true
-	sk.tmpSet = map[uint32]struct{}{26: struct{}{}, 40: struct{}{}}
+	sk.tmpSet = map[uint32]struct{}{26: {}, 40: {}}
 
 	// Add a bunch of values to the sparse representation.
 	for i := 0; i < 10; i++ {
