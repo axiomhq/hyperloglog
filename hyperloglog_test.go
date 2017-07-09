@@ -575,14 +575,7 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	}
 }
 
-func TestHLLTC_Clone_Basic(t *testing.T) {
-	sk1 := NewTestSketch(4)
-	sk2 := sk1.Clone()
-
-	testSketchProperties(sk1, sk2, t)
-}
-
-func TestHLLTC_Clone_Populated(t *testing.T) {
+func TestHLLTC_Clone(t *testing.T) {
 	sk1 := NewTestSketch(16)
 
 	sk1.Insert(toByte(0x00010fffffffffff))
@@ -598,33 +591,45 @@ func TestHLLTC_Clone_Populated(t *testing.T) {
 
 	sk2 := sk1.Clone()
 
-	testSketchProperties(sk1, sk2, t)
+	if !isSketchEqual(sk1, sk2) {
+		t.Errorf("Expected %v, got %v1", sk1, sk2)
+	}
+
+	sk1.toNormal()
+
+	sk2 = sk1.Clone()
+
+	if !isSketchEqual(sk1, sk2) {
+		t.Errorf("Expected %v, got %v1", sk1, sk2)
+	}
 }
 
-func testSketchProperties(sk1, sk2 *Sketch, t *testing.T) {
+func isSketchEqual(sk1, sk2 *Sketch) bool {
 	if sk1.alpha != sk2.alpha {
-		t.Fatalf("got alpha %v, expected %v", sk2.alpha, sk1.alpha)
+		return false
 	}
 
 	if sk1.p != sk2.p {
-		t.Fatalf("got p %v, expected %v", sk2.p, sk1.p)
+		return false
 	}
 
 	if sk1.b != sk2.b {
-		t.Fatalf("got b %v, expected %v", sk2.b, sk1.b)
+		return false
 	}
 
 	if sk1.m != sk2.m {
-		t.Fatalf("got m %v, expected %v", sk2.m, sk1.m)
+		return false
 	}
 
-	if !reflect.DeepEqual(*sk1.sparseList, *sk2.sparseList) {
-		t.Fatalf("got sparseList %v, expected %v", sk2.sparseList, sk1.sparseList)
+	if !reflect.DeepEqual(sk1.sparseList, sk2.sparseList) {
+		return false
 	}
 
-	if sk1.regs != sk2.regs {
-		t.Fatalf("got regs %v, expected %v", sk2.regs, sk1.regs)
+	if !reflect.DeepEqual(sk1.regs, sk2.regs) {
+		return false
 	}
+
+	return true
 }
 
 func NewTestSketch(p uint8) *Sketch {
