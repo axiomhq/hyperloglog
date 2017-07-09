@@ -590,46 +590,41 @@ func TestHLLTC_Clone(t *testing.T) {
 	}
 
 	sk2 := sk1.Clone()
-
+	if m, n := sk1.Estimate(), sk2.Estimate(); m != n {
+		t.Errorf("Expected %v, got %v1", m, n)
+	}
 	if !isSketchEqual(sk1, sk2) {
 		t.Errorf("Expected %v, got %v1", sk1, sk2)
 	}
 
 	sk1.toNormal()
-
 	sk2 = sk1.Clone()
 
+	if m, n := sk1.Estimate(), sk2.Estimate(); m != n {
+		t.Errorf("Expected %v, got %v1", m, n)
+	}
 	if !isSketchEqual(sk1, sk2) {
 		t.Errorf("Expected %v, got %v1", sk1, sk2)
 	}
 }
 
 func isSketchEqual(sk1, sk2 *Sketch) bool {
-	if sk1.alpha != sk2.alpha {
+	switch {
+	case sk1.alpha != sk2.alpha:
 		return false
-	}
-
-	if sk1.p != sk2.p {
+	case sk1.p != sk2.p:
 		return false
-	}
-
-	if sk1.b != sk2.b {
+	case sk1.b != sk2.b:
 		return false
-	}
-
-	if sk1.m != sk2.m {
+	case sk1.m != sk2.m:
 		return false
-	}
-
-	if !reflect.DeepEqual(sk1.sparseList, sk2.sparseList) {
+	case !reflect.DeepEqual(sk1.sparseList, sk2.sparseList):
 		return false
-	}
-
-	if !reflect.DeepEqual(sk1.regs, sk2.regs) {
+	case !reflect.DeepEqual(sk1.regs, sk2.regs):
 		return false
+	default:
+		return true
 	}
-
-	return true
 }
 
 func NewTestSketch(p uint8) *Sketch {
