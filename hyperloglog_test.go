@@ -575,63 +575,6 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	}
 }
 
-func TestHLLTC_Clone(t *testing.T) {
-	sk1 := NewTestSketch(16)
-
-	sk1.Insert(toByte(0x00010fffffffffff))
-	sk1.Insert(toByte(0x0002ffffffffffff))
-	sk1.Insert(toByte(0x0003000000000000))
-	sk1.Insert(toByte(0x0003000000000001))
-	sk1.Insert(toByte(0xff03700000000000))
-
-	n := sk1.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
-
-	sk2 := sk1.Clone()
-
-	if !isSketchEqual(sk1, sk2) {
-		t.Errorf("Expected %v, got %v1", sk1, sk2)
-	}
-
-	sk1.toNormal()
-
-	sk2 = sk1.Clone()
-
-	if !isSketchEqual(sk1, sk2) {
-		t.Errorf("Expected %v, got %v1", sk1, sk2)
-	}
-}
-
-func isSketchEqual(sk1, sk2 *Sketch) bool {
-	if sk1.alpha != sk2.alpha {
-		return false
-	}
-
-	if sk1.p != sk2.p {
-		return false
-	}
-
-	if sk1.b != sk2.b {
-		return false
-	}
-
-	if sk1.m != sk2.m {
-		return false
-	}
-
-	if !reflect.DeepEqual(sk1.sparseList, sk2.sparseList) {
-		return false
-	}
-
-	if !reflect.DeepEqual(sk1.regs, sk2.regs) {
-		return false
-	}
-
-	return true
-}
-
 func NewTestSketch(p uint8) *Sketch {
 	sk, _ := new(p)
 	hash = nopHash
