@@ -19,10 +19,7 @@ func estimateError(got, exp uint64) float64 {
 }
 
 func main() {
-	axiom, err := hyperloglog.New(14)
-	if err != nil {
-		panic(err)
-	}
+	axiom := hyperloglog.New16()
 	influx, err := hll.NewPlus(14)
 	if err != nil {
 		panic(err)
