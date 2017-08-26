@@ -41,7 +41,7 @@ func New14() *Sketch {
 
 //New16 returns a HyperLogLog Sketch with 2^16 registers (precision 16)
 func New16() *Sketch {
-	sk, _ := new(14)
+	sk, _ := new(16)
 	return sk
 }
 
