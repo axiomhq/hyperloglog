@@ -185,11 +185,6 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 // Insert adds element e to sketch
 func (sk *Sketch) Insert(e []byte) {
 	x := hash(e)
-	sk.InsertHash(x)
-}
-
-// InsertHash adds hash x to sketch
-func (sk *Sketch) InsertHash(x uint64) {
 	if sk.sparse {
 		sk.tmpSet.add(encodeHash(x, sk.p, pp))
 		if uint32(len(sk.tmpSet))*100 > sk.m {

@@ -608,50 +608,6 @@ func TestHLLTC_Clone(t *testing.T) {
 	}
 }
 
-func TestHLLTC_Add_Hash(t *testing.T) {
-	sk := NewTestSketch(16)
-
-	n := sk.Estimate()
-	if n != 0 {
-		t.Error(n)
-	}
-
-	sk.InsertHash(0x00010fffffffffff)
-	sk.InsertHash(0x00020fffffffffff)
-	sk.InsertHash(0x00030fffffffffff)
-	sk.InsertHash(0x00040fffffffffff)
-	sk.InsertHash(0x00050fffffffffff)
-	sk.InsertHash(0x00050fffffffffff)
-
-	n = sk.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
-
-	sk.toNormal()
-	sk.InsertHash(0x10010f00ffffffff)
-	sk.InsertHash(0x20020f00ffffffff)
-	sk.InsertHash(0x30030f00ffffffff)
-	sk.InsertHash(0x40040f00ffffffff)
-	sk.InsertHash(0x50050f00ffffffff)
-	sk.InsertHash(0x60050f00ffffffff)
-
-	// not mutated, still returns correct count
-	n = sk.Estimate()
-	if n != 9 {
-		t.Error(n)
-	}
-
-	sk.InsertHash(0x00060fffffffffff)
-
-	// mutated
-	n = sk.Estimate()
-	if n != 11 {
-		t.Error(n)
-	}
-
-}
-
 func isSketchEqual(sk1, sk2 *Sketch) bool {
 	switch {
 	case sk1.alpha != sk2.alpha:
