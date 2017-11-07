@@ -763,3 +763,58 @@ func BenchmarkHll16(b *testing.B) {
 	fmt.Println("")
 	benchmark(16, b.N)
 }
+
+func BenchmarkZipf(b *testing.B) {
+	cases := []struct {
+		s    float64 // skew
+		bits uint64  // log2 of the maximum zipf value
+	}{
+		{s: 1.1, bits: 3},
+		{s: 1.1, bits: 10},
+		{s: 1.1, bits: 64},
+		{s: 1.5, bits: 3},
+		{s: 1.5, bits: 10},
+		{s: 1.5, bits: 64},
+		{s: 2, bits: 3},
+		{s: 2, bits: 10},
+		{s: 2, bits: 64},
+		{s: 5, bits: 3},
+		{s: 5, bits: 10},
+		{s: 5, bits: 64},
+	}
+	for _, tc := range cases {
+		name := fmt.Sprintf("s%g/b%d", tc.s, tc.bits)
+		b.Run(name, func(b *testing.B) {
+			// Create a local rng using a seed from the global rand.
+			rng := rand.New(rand.NewSource(rand.Int63()))
+			zipf := rand.NewZipf(rng, tc.s, 1 /* v */, (uint64(1)<<tc.bits)-1)
+
+			sk := New14()
+			b.ResetTimer()
+			const batchSize = 1000
+			for i := 0; i < b.N/batchSize; i++ {
+				b.StopTimer()
+				// Generate a bunch of random values upfront; we don't want to
+				// benchmark the RNG.
+				var values [batchSize]uint64
+				for j := range values {
+					values[j] = zipf.Uint64()
+				}
+				b.StartTimer()
+				var tmp [8]byte
+				for _, v := range values {
+					tmp[0] = byte(v)
+					tmp[1] = byte(v >> 8)
+					tmp[2] = byte(v >> 16)
+					tmp[3] = byte(v >> 24)
+					tmp[4] = byte(v >> 32)
+					tmp[5] = byte(v >> 40)
+					tmp[6] = byte(v >> 48)
+					tmp[7] = byte(v >> 56)
+					sk.Insert(tmp[:])
+				}
+			}
+			b.Logf("Result: %d values, estimated cardinality %d", b.N/batchSize*batchSize, sk.Estimate())
+		})
+	}
+}
