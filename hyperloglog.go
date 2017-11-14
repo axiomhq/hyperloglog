@@ -47,7 +47,6 @@ func New16() *Sketch {
 
 // New returns a HyperLogLog Sketch with 2^precision registers
 func new(precision uint8) (*Sketch, error) {
-	hash = hashFunc
 	if precision < 4 || precision > 18 {
 		return nil, fmt.Errorf("p has to be >= 4 and <= 18")
 	}
