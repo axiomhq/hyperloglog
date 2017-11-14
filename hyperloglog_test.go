@@ -28,6 +28,7 @@ func nopHash(buf []byte) uint64 {
 	}
 	return binary.BigEndian.Uint64(buf)
 }
+
 func TestHLLTC_CardinalityHashed(t *testing.T) {
 	hlltc, err := new(14)
 	if err != nil {
@@ -67,6 +68,10 @@ func toByte(v uint64) []byte {
 }
 
 func TestHLLTC_Add_NoSparse(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 	sk.toNormal()
 
@@ -109,6 +114,10 @@ func TestHLLTC_Add_NoSparse(t *testing.T) {
 }
 
 func TestHLLTC_Precision_NoSparse(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(4)
 	sk.toNormal()
 
@@ -132,6 +141,10 @@ func TestHLLTC_Precision_NoSparse(t *testing.T) {
 }
 
 func TestHLLTC_toNormal(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.toNormal()
@@ -173,6 +186,10 @@ func TestHLLTC_toNormal(t *testing.T) {
 }
 
 func TestHLLTC_Cardinality(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
@@ -208,6 +225,10 @@ func TestHLLTC_Cardinality(t *testing.T) {
 }
 
 func TestHLLTC_Merge_Error(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 	sk2 := NewTestSketch(10)
 
@@ -218,6 +239,10 @@ func TestHLLTC_Merge_Error(t *testing.T) {
 }
 
 func TestHLLTC_Merge_Sparse(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.Insert(toByte(0x00020fffffffffff))
@@ -386,6 +411,10 @@ func TestHLLTC_Merge_Complex(t *testing.T) {
 }
 
 func TestHLLTC_EncodeDecode(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(8)
 	i, r := decodeHash(encodeHash(0xffffff8000000000, sk.p, pp), sk.p, pp)
 	if i != 0xff {
@@ -609,6 +638,10 @@ func TestHLLTC_Clone(t *testing.T) {
 }
 
 func TestHLLTC_Add_Hash(t *testing.T) {
+	hash = nopHash
+	defer func() {
+		hash = hashFunc
+	}()
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
@@ -673,7 +706,6 @@ func isSketchEqual(sk1, sk2 *Sketch) bool {
 
 func NewTestSketch(p uint8) *Sketch {
 	sk, _ := new(p)
-	hash = nopHash
 	return sk
 }
 
