@@ -174,7 +174,11 @@ func (sk *Sketch) insert(i uint32, r uint8) {
 		}
 	}
 	if r > sk.b {
-		val := uint8(math.Min(float64(r-sk.b), float64(capacity-1)))
+		val := r - sk.b
+		if c1 := capacity - 1; c1 < val {
+			val = c1
+		}
+
 		if val > sk.regs.get(i) {
 			sk.regs.set(i, val)
 		}

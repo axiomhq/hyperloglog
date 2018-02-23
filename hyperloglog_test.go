@@ -671,7 +671,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 
 	// not mutated, still returns correct count
 	n = sk.Estimate()
-	if n != 9 {
+	if n != 12 {
 		t.Error(n)
 	}
 
@@ -679,7 +679,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 
 	// mutated
 	n = sk.Estimate()
-	if n != 11 {
+	if n != 13 {
 		t.Error(n)
 	}
 
@@ -735,6 +735,8 @@ func genData(num int) [][]byte {
 var benchdata = map[int][][]byte{}
 
 func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
+	sk.sparse = false
+	sk.toNormal()
 	blobs, ok := benchdata[n]
 	if !ok {
 		// Generate it.
