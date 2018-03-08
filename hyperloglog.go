@@ -195,9 +195,9 @@ func (sk *Sketch) Insert(e []byte) {
 func (sk *Sketch) InsertHash(x uint64) {
 	if sk.sparse {
 		sk.tmpSet.add(encodeHash(x, sk.p, pp))
-		if uint32(len(sk.tmpSet))*100 > sk.m {
+		if uint32(len(sk.tmpSet))*100 > sk.m/2 {
 			sk.mergeSparse()
-			if uint32(sk.sparseList.Len()) > sk.m {
+			if uint32(sk.sparseList.Len()) > sk.m/2 {
 				sk.toNormal()
 			}
 		}
