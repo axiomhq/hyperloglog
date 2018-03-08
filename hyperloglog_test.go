@@ -735,8 +735,6 @@ func genData(num int) [][]byte {
 var benchdata = map[int][][]byte{}
 
 func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
-	sk.sparse = false
-	sk.toNormal()
 	blobs, ok := benchdata[n]
 	if !ok {
 		// Generate it.
