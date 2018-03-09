@@ -36,8 +36,7 @@ func decodeHash(k uint32, p, pp uint8) (uint32, uint8) {
 
 type set map[uint32]struct{}
 
-func (s set) add(v uint32)      { s[v] = struct{}{} }
-func (s set) has(v uint32) bool { _, ok := s[v]; return ok }
+func (s set) add(v uint32) { s[v] = struct{}{} }
 
 func (s set) Clone() set {
 	if s == nil {
