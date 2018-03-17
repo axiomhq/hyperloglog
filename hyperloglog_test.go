@@ -671,7 +671,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 
 	// not mutated, still returns correct count
 	n = sk.Estimate()
-	if n != 12 {
+	if n != 11 {
 		t.Error(n)
 	}
 
@@ -679,7 +679,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 
 	// mutated
 	n = sk.Estimate()
-	if n != 13 {
+	if n != 12 {
 		t.Error(n)
 	}
 

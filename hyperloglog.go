@@ -226,9 +226,9 @@ func (sk *Sketch) Estimate() uint64 {
 	}
 
 	if sk.b == 0 {
-		est = (sk.alpha * m * (m - ez) / (sum + beta(ez))) + 0.5
+		est = (sk.alpha * m * (m - ez) / (sum + beta(ez)))
 	} else {
-		est = (sk.alpha * m * m / sum) + 0.5
+		est = (sk.alpha * m * m / sum)
 	}
 
 	return uint64(est + 0.5)
