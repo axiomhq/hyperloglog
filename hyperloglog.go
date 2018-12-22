@@ -362,6 +362,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		if err != nil {
 			return err
 		}
+		newh.b = sk.b
 		*sk = *newh
 	}
 
