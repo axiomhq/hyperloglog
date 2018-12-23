@@ -631,6 +631,30 @@ func TestHLLTC_Marshal_Unmarshal_Reuse(t *testing.T) {
 	}
 }
 
+func TestHLLTC_Unmarshal_ErrorTooShort(t *testing.T) {
+	if err := (&Sketch{}).UnmarshalBinary(nil); err != ErrorTooShort {
+		t.Fatalf("UnmarshalBinary(nil) should fail with ErrorTooShort: %s", err)
+	}
+
+	b := []byte{
+		// precision:14, sparse:true, tmpSet:empty,
+		// sparseList:{count:1, last:0, sz:1, ...}
+		0x01, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x01, 0x7f,
+	}
+	if err := (&Sketch{}).UnmarshalBinary(b); err != nil {
+		t.Fatalf("UnmarshalBinary failed: %s", err)
+	}
+	for i := 0 ; i < len(b)-1; i++ {
+		sk := &Sketch{}
+		err := sk.UnmarshalBinary(b[0:i])
+		if err != ErrorTooShort {
+			t.Fatalf("should fail for incomplete bytes: i=%d", i)
+		}
+	}
+}
+
 func TestHLLTC_Clone(t *testing.T) {
 	sk1 := NewTestSketch(16)
 

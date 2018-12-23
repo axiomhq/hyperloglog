@@ -341,8 +341,16 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
+// ErrorTooShort is an error that UnmarshalBinary try to parse too short
+// binary.
+var ErrorTooShort = errors.New("too short binary")
+
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
 func (sk *Sketch) UnmarshalBinary(data []byte) error {
+	if len(data) < 8 {
+		return ErrorTooShort
+	}
+
 	// Unmarshal version. We may need this in the future if we make
 	// non-compatible changes.
 	_ = data[0]
