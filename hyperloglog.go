@@ -73,7 +73,7 @@ func new(precision uint8, sparse bool) (*Sketch, error) {
 	if sparse {
 		s.sparse = true
 		s.tmpSet = set{}
-		s.sparseList = newCompressedList(int(m))
+		s.sparseList = newCompressedList()
 	} else {
 		s.regs = newRegisters(m)
 	}
@@ -272,7 +272,7 @@ func (sk *Sketch) mergeSparse() {
 	}
 	sort.Sort(keys)
 
-	newList := newCompressedList(int(sk.m))
+	newList := newCompressedList()
 	for iter, i := sk.sparseList.Iter(), 0; iter.HasNext() || i < len(keys); {
 		if !iter.HasNext() {
 			newList.Append(keys[i])
