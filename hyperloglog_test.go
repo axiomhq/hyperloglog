@@ -151,7 +151,7 @@ func TestHLLTC_toNormal(t *testing.T) {
 		t.Error(c)
 	}
 
-	if sk.sparse {
+	if sk.sparse() {
 		t.Error("toNormal should convert to normal")
 	}
 
@@ -258,11 +258,11 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 		t.Error(n)
 	}
 
-	if !sk2.sparse {
+	if !sk2.sparse() {
 		t.Error("Merge should convert to normal")
 	}
 
-	if !sk.sparse {
+	if !sk.sparse() {
 		t.Error("Merge should not modify argument")
 	}
 
@@ -470,7 +470,6 @@ func TestHLLTC_Error(t *testing.T) {
 
 func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 	sk, _ := newSketch(4, true)
-	sk.sparse = true
 	sk.tmpSet = map[uint32]struct{}{26: {}, 40: {}}
 
 	// Add a bunch of values to the sparse representation.
@@ -808,7 +807,7 @@ func Benchmark_Size_New_Sparse(b *testing.B) {
 	var sk *Sketch
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		sk, _ = new(16, true)
+		sk, _ = newSketch(16, true)
 	}
 	_ = sk
 }
