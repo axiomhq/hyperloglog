@@ -18,7 +18,6 @@ const (
 // Sketch is a HyperLogLog data-structure for the count-distinct problem,
 // approximating the number of distinct elements in a multiset.
 type Sketch struct {
-	sparse     bool
 	p          uint8
 	b          uint8
 	m          uint32
@@ -71,13 +70,16 @@ func newSketch(precision uint8, sparse bool) (*Sketch, error) {
 		alpha: alpha(float64(m)),
 	}
 	if sparse {
-		s.sparse = true
 		s.tmpSet = set{}
 		s.sparseList = newCompressedList()
 	} else {
 		s.regs = newRegisters(m)
 	}
 	return s, nil
+}
+
+func (sk *Sketch) sparse() bool {
+	return sk.sparseList != nil
 }
 
 // Clone returns a deep copy of sk.
@@ -87,7 +89,6 @@ func (sk *Sketch) Clone() *Sketch {
 		p:          sk.p,
 		m:          sk.m,
 		alpha:      sk.alpha,
-		sparse:     sk.sparse,
 		tmpSet:     sk.tmpSet.Clone(),
 		sparseList: sk.sparseList.Clone(),
 		regs:       sk.regs.clone(),
@@ -118,7 +119,7 @@ func (sk *Sketch) Merge(other *Sketch) error {
 		return errors.New("precisions must be equal")
 	}
 
-	if sk.sparse && other.sparse {
+	if sk.sparse() && other.sparse() {
 		for k := range other.tmpSet {
 			sk.tmpSet.add(k)
 		}
@@ -129,11 +130,11 @@ func (sk *Sketch) Merge(other *Sketch) error {
 		return nil
 	}
 
-	if sk.sparse {
+	if sk.sparse() {
 		sk.toNormal()
 	}
 
-	if cpOther.sparse {
+	if cpOther.sparse() {
 		for k := range cpOther.tmpSet {
 			i, r := decodeHash(k, cpOther.p, pp)
 			sk.insert(i, r)
@@ -178,7 +179,6 @@ func (sk *Sketch) toNormal() {
 		sk.insert(i, r)
 	}
 
-	sk.sparse = false
 	sk.tmpSet = nil
 	sk.sparseList = nil
 }
@@ -216,7 +216,7 @@ func (sk *Sketch) Insert(e []byte) bool {
 
 // InsertHash adds hash x to sketch
 func (sk *Sketch) InsertHash(x uint64) bool {
-	if sk.sparse {
+	if sk.sparse() {
 		changed := sk.tmpSet.add(encodeHash(x, sk.p, pp))
 		if !changed {
 			return false
@@ -236,7 +236,7 @@ func (sk *Sketch) InsertHash(x uint64) bool {
 
 // Estimate returns the cardinality of the Sketch
 func (sk *Sketch) Estimate() uint64 {
-	if sk.sparse {
+	if sk.sparse() {
 		sk.mergeSparse()
 		return uint64(linearCount(mp, mp-sk.sparseList.count))
 	}
@@ -310,7 +310,7 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 	// Marshal b
 	data = append(data, sk.b)
 
-	if sk.sparse {
+	if sk.sparse() {
 		// It's using the sparse Sketch.
 		data = append(data, byte(1))
 
@@ -386,7 +386,6 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	// rest of the details out.
 	if sparse {
 		// Using the sparse Sketch.
-		sk.sparse = true
 
 		// Unmarshal the tmp_set.
 		tssz := binary.BigEndian.Uint32(data[4:8])
@@ -405,7 +404,6 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	}
 
 	// Using the dense Sketch.
-	sk.sparse = false
 	sk.sparseList = nil
 	sk.tmpSet = nil
 	dsz := binary.BigEndian.Uint32(data[4:8])
