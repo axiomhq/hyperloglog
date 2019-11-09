@@ -35,32 +35,32 @@ func New() *Sketch {
 
 // New14 returns a HyperLogLog Sketch with 2^14 registers (precision 14)
 func New14() *Sketch {
-	sk, _ := new(14, true)
+	sk, _ := newSketch(14, true)
 	return sk
 }
 
 // New16 returns a HyperLogLog Sketch with 2^16 registers (precision 16)
 func New16() *Sketch {
-	sk, _ := new(16, true)
+	sk, _ := newSketch(16, true)
 	return sk
 }
 
 // NewNoSparse returns a HyperLogLog Sketch with 2^14 registers (precision 14)
 // that will not use a sparse representation
 func NewNoSparse() *Sketch {
-	sk, _ := new(14, false)
+	sk, _ := newSketch(14, false)
 	return sk
 }
 
 // New16NoSparse returns a HyperLogLog Sketch with 2^16 registers (precision 16)
 // that will not use a sparse representation
 func New16NoSparse() *Sketch {
-	sk, _ := new(16, false)
+	sk, _ := newSketch(16, false)
 	return sk
 }
 
-// new returns a HyperLogLog Sketch with 2^precision registers
-func new(precision uint8, sparse bool) (*Sketch, error) {
+// newSketch returns a HyperLogLog Sketch with 2^precision registers
+func newSketch(precision uint8, sparse bool) (*Sketch, error) {
 	if precision < 4 || precision > 18 {
 		return nil, fmt.Errorf("p has to be >= 4 and <= 18")
 	}
@@ -372,9 +372,9 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	// Determine if we need a sparse Sketch
 	sparse := data[3] == byte(1)
 
-	// Make a new Sketch if the precision doesn't match or if the Sketch was used
+	// Make a newSketch Sketch if the precision doesn't match or if the Sketch was used
 	if sk.p != p || sk.regs != nil || len(sk.tmpSet) > 0 || (sk.sparseList != nil && sk.sparseList.Len() > 0) {
-		newh, err := new(p, sparse)
+		newh, err := newSketch(p, sparse)
 		if err != nil {
 			return err
 		}
