@@ -646,7 +646,7 @@ func TestHLLTC_Unmarshal_ErrorTooShort(t *testing.T) {
 	if err := (&Sketch{}).UnmarshalBinary(b); err != nil {
 		t.Fatalf("UnmarshalBinary failed: %s", err)
 	}
-	for i := 0 ; i < len(b)-1; i++ {
+	for i := 0; i < len(b)-1; i++ {
 		sk := &Sketch{}
 		err := sk.UnmarshalBinary(b[0:i])
 		if err != ErrorTooShort {
@@ -801,6 +801,16 @@ func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
 		}
 	}
 	b.StopTimer()
+}
+
+// Report size and allocations of a new sparse HLL
+func Benchmark_Size_New_Sparse(b *testing.B) {
+	var sk *Sketch
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		sk, _ = new(16, true)
+	}
+	_ = sk
 }
 
 func Benchmark_Add_100(b *testing.B) {
