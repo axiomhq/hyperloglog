@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: |
+            go get gotest.tools/gotestsum@v0.4.0
+            mkdir -p test-results/gotestsum
+            gotestsum --junitfile test-results/gotestsum/results.xml -f short-verbose -- ./...
+      - run: 
+          name: Run benchmarks
+          command: go test -bench .
+      - store_test_results:
+          path: test-results
