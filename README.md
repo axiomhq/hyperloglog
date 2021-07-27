@@ -42,7 +42,7 @@ A big thank you to Prof. Shigang Chen and his team at the University of Florida 
 
 ## Documentation
 
-You can find the Axiom and Axiom node documentation [on the docs website.](https://docs.axiom.co/)
+You can find the Axiom documentation [on the docs website.](https://docs.axiom.co/)
 
 The documentation is divided into several sections:
 
