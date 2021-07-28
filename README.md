@@ -1,6 +1,6 @@
-![Hyperloglog Logo](https://axiom.co/static/oss-hyperloglog.jpg)
+<img height="32" src="https://axiom.co/logo.svg">
 
-  ---
+---
 
 [![GoDoc](https://godoc.org/github.com/axiomhq/hyperloglog?status.svg)](https://godoc.org/github.com/axiomhq/hyperloglog) [![Go Report Card](https://goreportcard.com/badge/github.com/axiomhq/hyperloglog)](https://goreportcard.com/report/github.com/axiomhq/hyperloglog) [![CircleCI](https://circleci.com/gh/axiomhq/hyperloglog/tree/master.svg?style=svg)](https://circleci.com/gh/axiomhq/hyperloglog/tree/master)
 
@@ -40,8 +40,35 @@ A big thank you to Prof. Shigang Chen and his team at the University of Florida 
 
 ---
 
-**An [Axiom](https://axiom.co) production.**
+## Documentation
 
-Do you enjoy solving problems like these? If so, get in touch with us at [careers@axiom.co](mailto:careers@axiom.co)!
+You can find the Axiom documentation [on the docs website.](https://docs.axiom.co/)
 
-<a href="https://axiom.co"><img align="right" width="48" height="48" src="https://axiom.co/static/xiom-inverted-sunset.png"></a>
+The documentation is divided into several sections:
+
+- [Overview of Axiom](https://docs.axiom.co/usage/getting-started/)
+- **Installing Axiom:**
+    - [Axiom Cloud](https://docs.axiom.co/install/cloud/)
+    - [Desktop Demo](https://docs.axiom.co/install/demo/)
+    - [Runing Axiom on Kubernetes](https://docs.axiom.co/install/kubernetes/)
+- [Axiom API](https://docs.axiom.co/reference/api/)
+- [Axiom CLI](https://github.com/axiomhq/cli)
+- [Getting Support](https://www.axiom.co/support/)
+- [Data Shippers we support](https://docs.axiom.co/data-shippers/elastic-beats/)
+
+---
+
+## Contributing
+
+Kindly check our [contributing guide](https://github.com/axiomhq/hyperloglog/blob/main/Contributing.md) on how to propose bugfixes and improvements, and submitting pull requests to the project
+
+## License
+
+&copy; Axiom, Inc., 2021
+
+Distributed under MIT License (`The MIT License`).
+
+See [LICENSE](LICENSE) for more information.
+
+
+<img align="right" width="48" height="48" src="https://axiom.co/xiom.svg">
