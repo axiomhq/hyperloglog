@@ -38,25 +38,6 @@ A direct comparison with the [HyperLogLog++ implementation used by InfluxDB](htt
 ## Note
 A big thank you to Prof. Shigang Chen and his team at the University of Florida who are actively conducting research around "Big Network Data".
 
----
-
-## Documentation
-
-You can find the Axiom documentation [on the docs website.](https://docs.axiom.co/)
-
-The documentation is divided into several sections:
-
-- [Overview of Axiom](https://docs.axiom.co/usage/getting-started/)
-- **Installing Axiom:**
-    - [Axiom Cloud](https://docs.axiom.co/install/cloud/)
-    - [Desktop Demo](https://docs.axiom.co/install/demo/)
-    - [Runing Axiom on Kubernetes](https://docs.axiom.co/install/kubernetes/)
-- [Axiom API](https://docs.axiom.co/reference/api/)
-- [Axiom CLI](https://github.com/axiomhq/cli)
-- [Getting Support](https://www.axiom.co/support/)
-- [Data Shippers we support](https://docs.axiom.co/data-shippers/elastic-beats/)
-
----
 
 ## Contributing
 
