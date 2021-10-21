@@ -1,5 +1,4 @@
-<img height="32" src="https://axiom.co/logo.svg">
-
+HyperLogLog - an algorithm for approximating the number of distinct elements
 ---
 
 [![GoDoc](https://godoc.org/github.com/axiomhq/hyperloglog?status.svg)](https://godoc.org/github.com/axiomhq/hyperloglog) [![Go Report Card](https://goreportcard.com/badge/github.com/axiomhq/hyperloglog)](https://goreportcard.com/report/github.com/axiomhq/hyperloglog) [![CircleCI](https://circleci.com/gh/axiomhq/hyperloglog/tree/master.svg?style=svg)](https://circleci.com/gh/axiomhq/hyperloglog/tree/master)
@@ -50,6 +49,3 @@ Kindly check our [contributing guide](https://github.com/axiomhq/hyperloglog/blo
 Distributed under MIT License (`The MIT License`).
 
 See [LICENSE](LICENSE) for more information.
-
-
-<img align="right" width="48" height="48" src="https://axiom.co/xiom.svg">
