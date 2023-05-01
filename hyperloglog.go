@@ -32,6 +32,15 @@ func New() *Sketch {
 	return New14()
 }
 
+// NewSketch returns a HyperLogLog Sketch with 2^precision registers
+func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
+	sk, err := newSketch(precision, sparse)
+	if err != nil {
+		return nil, err
+	}
+	return sk, err
+}
+
 // New14 returns a HyperLogLog Sketch with 2^14 registers (precision 14)
 func New14() *Sketch {
 	sk, _ := newSketch(14, true)
