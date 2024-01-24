@@ -772,8 +772,10 @@ func genData(num int) [][]byte {
 		} else if n != 8 {
 			panic(fmt.Errorf("only %d bytes generated", n))
 		}
-
-		out = append(out, buf)
+		
+		copiedBuf := make([]byte, 8)	
+		copy(copiedBuf, buf)  // copy the contents of buf to copiedBuf
+		out = append(out, copiedBuf)
 	}
 	if len(out) != num {
 		panic(fmt.Sprintf("wrong size slice: %d", num))
