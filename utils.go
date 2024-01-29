@@ -1,7 +1,6 @@
 package hyperloglog
 
 import (
-	"encoding/binary"
 	"math"
 	"math/bits"
 
