@@ -761,7 +761,7 @@ func NewTestSketch(p uint8) *Sketch {
 
 // Generate random data to add to the sketch.
 func genData(num int) [][]byte {
-	out := make([][]byte, num)
+	out := make([][]byte, 0, num)
 	buf := make([]byte, 8)
 
 	for i := 0; i < num; i++ {
@@ -772,9 +772,9 @@ func genData(num int) [][]byte {
 		} else if n != 8 {
 			panic(fmt.Errorf("only %d bytes generated", n))
 		}
-
-		out[i] = make([]byte, 8)
-		copy(out[i], buf)
+		copiedBuf := make([]byte, 8)
+		copy(copiedBuf, buf)  // copy the contents of buf to copiedBuf
+		out = append(out, copiedBuf)
 	}
 	if len(out) != num {
 		panic(fmt.Sprintf("wrong size slice: %d", num))
