@@ -772,9 +772,9 @@ func genData(num int) [][]byte {
 		} else if n != 8 {
 			panic(fmt.Errorf("only %d bytes generated", n))
 		}
-		
-		copiedBuf := make([]byte, 8)	
-		copy(copiedBuf, buf)  // copy the contents of buf to copiedBuf
+
+		copiedBuf := make([]byte, 8)
+		copy(copiedBuf, buf) // copy the contents of buf to copiedBuf
 		out = append(out, copiedBuf)
 	}
 	if len(out) != num {
@@ -954,5 +954,31 @@ func BenchmarkZipf(b *testing.B) {
 			}
 			b.Logf("Result: %d values, estimated cardinality %d", b.N/batchSize*batchSize, sk.Estimate())
 		})
+	}
+}
+
+func TestAddOrderInvariance(t *testing.T) {
+	rng := rand.New(rand.NewSource(123))
+	hashes := make([]uint64, 32000000)
+	for i := range hashes {
+		hashes[i] = rng.Uint64()
+	}
+
+	h1 := New()
+	for _, h := range hashes {
+		h1.InsertHash(h)
+	}
+
+	rng.Shuffle(len(hashes), func(i, j int) {
+		hashes[i], hashes[j] = hashes[j], hashes[i]
+	})
+
+	h2 := New()
+	for _, h := range hashes {
+		h2.InsertHash(h)
+	}
+
+	if want, have := h1.Estimate(), h2.Estimate(); want != have {
+		t.Fatalf("%d != %d", want, have)
 	}
 }
