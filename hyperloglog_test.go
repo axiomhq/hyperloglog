@@ -766,14 +766,13 @@ func genData(num int) [][]byte {
 
 	for i := 0; i < num; i++ {
 		// generate 8 random bytes
-		n, err := rand.Read(buf)
+		n, err := crand.Read(buf)
 		if err != nil {
 			panic(err)
 		} else if n != 8 {
 			panic(fmt.Errorf("only %d bytes generated", n))
 		}
-		
-		copiedBuf := make([]byte, 8)	
+		copiedBuf := make([]byte, 8)
 		copy(copiedBuf, buf)  // copy the contents of buf to copiedBuf
 		out = append(out, copiedBuf)
 	}
