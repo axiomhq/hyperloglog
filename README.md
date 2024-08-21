@@ -10,6 +10,10 @@ The initial version of this work (tagged as v0.1.0) was based on ["Better with f
 
 ## Current Implementation
 
+The current implementation is based on the LogLog-Beta algorithm, as described in:
+
+["LogLog-Beta and More: A New Algorithm for Cardinality Estimation Based on LogLog Counting"](https://arxiv.org/pdf/1612.02284) by Jason Qin, Denys Kim, and Yumei Tung (2016).
+
 Key features of the current implementation:
 * **Metro hash** used instead of xxhash
 * **Sparse representation** for lower cardinalities (like HyperLogLog++)
