@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/require"
 )
 
 func estimateError(got, exp uint64) float64 {
@@ -29,11 +30,9 @@ func nopHash(buf []byte) uint64 {
 	return binary.BigEndian.Uint64(buf)
 }
 
-func TestHLLTC_CardinalityHashed(t *testing.T) {
-	hlltc, err := newSketch(14, true)
-	if err != nil {
-		t.Error("expected no error, got", err)
-	}
+func TestHLL_CardinalityHashed(t *testing.T) {
+	hlltc, err := NewSketch(14, true)
+	require.NoError(t, err)
 
 	step := 10
 	unique := map[string]bool{}
@@ -48,17 +47,13 @@ func TestHLLTC_CardinalityHashed(t *testing.T) {
 			exact := uint64(len(unique))
 			res := uint64(hlltc.Estimate())
 			ratio := 100 * estimateError(res, exact)
-			if ratio > 2 {
-				t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
-			}
+			require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 		}
 	}
 	exact := uint64(len(unique))
 	res := uint64(hlltc.Estimate())
 	ratio := 100 * estimateError(res, exact)
-	if ratio > 2 {
-		t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
-	}
+	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 }
 
 func toByte(v uint64) []byte {
@@ -67,7 +62,7 @@ func toByte(v uint64) []byte {
 	return buf[:]
 }
 
-func TestHLLTC_Add_NoSparse(t *testing.T) {
+func TestHLL_Add_NoSparse(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -75,70 +70,51 @@ func TestHLLTC_Add_NoSparse(t *testing.T) {
 	sk := New16NoSparse()
 
 	sk.Insert(toByte(0x00010fffffffffff))
-	n := sk.regs.get(1)
-	if n != 5 {
-		t.Error(n)
-	}
+	n := sk.regs[1]
+	require.EqualValues(t, 5, n)
 
 	sk.Insert(toByte(0x0002ffffffffffff))
-	n = sk.regs.get(2)
-	if n != 1 {
-		t.Error(n)
-	}
+	n = sk.regs[2]
+	require.EqualValues(t, 1, n)
 
 	sk.Insert(toByte(0x0003000000000000))
-	n = sk.regs.get(3)
-	if n != 15 {
-		t.Error(n)
-	}
+	n = sk.regs[3]
+	require.EqualValues(t, 49, n)
 
 	sk.Insert(toByte(0x0003000000000001))
-	n = sk.regs.get(3)
-	if n != 15 {
-		t.Error(n)
-	}
+	n = sk.regs[3]
+	require.EqualValues(t, 49, n)
 
 	sk.Insert(toByte(0xff03700000000000))
-	n = sk.regs.get(0xff03)
-	if n != 2 {
-		t.Error(n)
-	}
+	n = sk.regs[0xff03]
+	require.EqualValues(t, 2, n)
 
 	sk.Insert(toByte(0xff03080000000000))
-	n = sk.regs.get(0xff03)
-	if n != 5 {
-		t.Error(n)
-	}
-
+	n = sk.regs[0xff03]
+	require.EqualValues(t, 5, n)
 }
 
-func TestHLLTC_Precision_NoSparse(t *testing.T) {
+func TestHLL_Precision_NoSparse(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
 	}()
-	sk, _ := newSketch(4, false)
+	sk, _ := NewSketch(4, false)
 
 	sk.Insert(toByte(0x1fffffffffffffff))
-	n := sk.regs.get(1)
-	if n != 1 {
-		t.Error(n)
-	}
+	n := sk.regs[1]
+	require.EqualValues(t, 1, n)
 
 	sk.Insert(toByte(0xffffffffffffffff))
-	n = sk.regs.get(0xf)
-	if n != 1 {
-		t.Error(n)
-	}
+	n = sk.regs[0xf]
+	require.EqualValues(t, 1, n)
 
 	sk.Insert(toByte(0x00ffffffffffffff))
-	n = sk.regs.get(0)
-	if n != 5 {
-		t.Error(n)
-	}
+	n = sk.regs[0]
+	require.EqualValues(t, 5, n)
 }
 
-func TestHLLTC_toNormal(t *testing.T) {
+func TestHLL_toNormal(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -147,13 +123,9 @@ func TestHLLTC_toNormal(t *testing.T) {
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.toNormal()
 	c := sk.Estimate()
-	if c != 1 {
-		t.Error(c)
-	}
+	require.EqualValues(t, 1, c)
 
-	if sk.sparse() {
-		t.Error("toNormal should convert to normal")
-	}
+	require.False(t, sk.sparse(), "toNormal should convert to normal")
 
 	sk = NewTestSketch(16)
 	sk.Insert(toByte(0x00010fffffffffff))
@@ -165,25 +137,17 @@ func TestHLLTC_toNormal(t *testing.T) {
 	sk.mergeSparse()
 	sk.toNormal()
 
-	n := sk.regs.get(1)
-	if n != 5 {
-		t.Error(n)
-	}
-	n = sk.regs.get(2)
-	if n != 1 {
-		t.Error(n)
-	}
-	n = sk.regs.get(3)
-	if n != 15 {
-		t.Error(n)
-	}
-	n = sk.regs.get(0xff03)
-	if n != 5 {
-		t.Error(n)
-	}
+	n := sk.regs[1]
+	require.EqualValues(t, 5, n)
+	n = sk.regs[2]
+	require.EqualValues(t, 1, n)
+	n = sk.regs[3]
+	require.EqualValues(t, 49, n)
+	n = sk.regs[0xff03]
+	require.EqualValues(t, 5, n)
 }
 
-func TestHLLTC_Cardinality(t *testing.T) {
+func TestHLL_Cardinality(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -191,9 +155,7 @@ func TestHLLTC_Cardinality(t *testing.T) {
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
-	if n != 0 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 0, n)
 
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.Insert(toByte(0x00020fffffffffff))
@@ -203,26 +165,20 @@ func TestHLLTC_Cardinality(t *testing.T) {
 	sk.Insert(toByte(0x00050fffffffffff))
 
 	n = sk.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 5, n)
 
 	// not mutated, still returns correct count
 	n = sk.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 5, n)
 
 	sk.Insert(toByte(0x00060fffffffffff))
 
 	// mutated
 	n = sk.Estimate()
-	if n != 6 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 6, n)
 }
 
-func TestHLLTC_Merge_Error(t *testing.T) {
+func TestHLL_Merge_Error(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -231,12 +187,10 @@ func TestHLLTC_Merge_Error(t *testing.T) {
 	sk2 := NewTestSketch(10)
 
 	err := sk.Merge(sk2)
-	if err == nil {
-		t.Error("different precision should return error")
-	}
+	require.Error(t, err, "different precision should return error")
 }
 
-func TestHLLTC_Merge_Sparse(t *testing.T) {
+func TestHLL_Merge_Sparse(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -250,29 +204,16 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	sk.Insert(toByte(0x00050fffffffffff))
 
 	sk2 := NewTestSketch(16)
-	if err := sk2.Merge(sk); err != nil {
-		t.Error("Expected no error, got", err)
-	}
+	require.NoError(t, sk2.Merge(sk))
 	n := sk2.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 5, n)
 
-	if !sk2.sparse() {
-		t.Error("Merge should convert to normal")
-	}
+	require.True(t, sk2.sparse(), "Merge should convert to normal")
+	require.True(t, sk.sparse(), "Merge should not modify argument")
 
-	if !sk.sparse() {
-		t.Error("Merge should not modify argument")
-	}
-
-	if err := sk2.Merge(sk); err != nil {
-		t.Error("Expected no error, got", err)
-	}
+	require.NoError(t, sk2.Merge(sk))
 	n = sk2.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 5, n)
 
 	sk.Insert(toByte(0x00060fffffffffff))
 	sk.Insert(toByte(0x00070fffffffffff))
@@ -281,75 +222,20 @@ func TestHLLTC_Merge_Sparse(t *testing.T) {
 	sk.Insert(toByte(0x000a0fffffffffff))
 	sk.Insert(toByte(0x000a0fffffffffff))
 	n = sk.Estimate()
-	if n != 10 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 10, n)
 
-	if err := sk2.Merge(sk); err != nil {
-		t.Error("Expected no error, got", err)
-	}
+	require.NoError(t, sk2.Merge(sk))
 	n = sk2.Estimate()
-	if n != 10 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 10, n)
 }
 
-func TestHLLTC_Merge_Rebase(t *testing.T) {
-	sk1, _ := newSketch(16, false)
-	sk2, _ := newSketch(16, false)
-
-	sk1.regs.set(13, 7)
-	sk2.regs.set(13, 1)
-	if err := sk1.Merge(sk2); err != nil {
-		t.Error("Expected no error, got", err)
-	}
-	if r := sk1.regs.get(13); r != 7 {
-		t.Error(r)
-	}
-
-	sk2.regs.set(13, 8)
-	if err := sk1.Merge(sk2); err != nil {
-		t.Error("Expected no error, got", err)
-	}
-	if r := sk2.regs.get(13); r != 8 {
-		t.Error(r)
-	}
-	if r := sk1.regs.get(13); r != 8 {
-		t.Error(r)
-	}
-
-	sk1.b = 12
-	sk2.regs.set(13, 12)
-	if err := sk1.Merge(sk2); err != nil {
-		t.Error("Expected no error, got", err)
-	}
-	if r := sk1.regs.get(13); r != 8 {
-		t.Error(r)
-	}
-
-	sk2.b = 13
-	sk2.regs.set(13, 12)
-	if err := sk1.Merge(sk2); err != nil {
-		t.Error("Expected no error, got", err)
-	}
-	if r := sk1.regs.get(13); r != 12 {
-		t.Error(r)
-	}
-}
-
-func TestHLLTC_Merge_Complex(t *testing.T) {
-	sk1, err := newSketch(14, true)
-	if err != nil {
-		t.Error("expected no error, got", err)
-	}
-	sk2, err := newSketch(14, true)
-	if err != nil {
-		t.Error("expected no error, got", err)
-	}
-	sk3, err := newSketch(14, true)
-	if err != nil {
-		t.Error("expected no error, got", err)
-	}
+func TestHLL_Merge_Complex(t *testing.T) {
+	sk1, err := NewSketch(14, true)
+	require.NoError(t, err)
+	sk2, err := NewSketch(14, true)
+	require.NoError(t, err)
+	sk3, err := NewSketch(14, true)
+	require.NoError(t, err)
 
 	unique := map[string]bool{}
 
@@ -365,26 +251,18 @@ func TestHLLTC_Merge_Complex(t *testing.T) {
 	exact1 := uint64(len(unique))
 	res1 := uint64(sk1.Estimate())
 	ratio := 100 * estimateError(res1, exact1)
-	if ratio > 2 {
-		t.Errorf("Exact %d, got %d which is %.2f%% error", exact1, res1, ratio)
-	}
+	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact1, res1, ratio)
 
 	exact2 := uint64(len(unique)) / 2
 	res2 := uint64(sk1.Estimate())
 	ratio = 100 * estimateError(res1, exact1)
-	if ratio > 2 {
-		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
-	}
+	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
-	if err := sk2.Merge(sk1); err != nil {
-		t.Error("Expected no error, got", err)
-	}
+	require.NoError(t, sk2.Merge(sk1))
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
 	ratio = 100 * estimateError(res1, exact1)
-	if ratio > 2 {
-		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
-	}
+	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
 	for i := 1; i <= 500000; i++ {
 		str := fmt.Sprintf("stream-%d", i)
@@ -392,84 +270,53 @@ func TestHLLTC_Merge_Complex(t *testing.T) {
 		unique[str] = true
 	}
 
-	if err := sk2.Merge(sk3); err != nil {
-		t.Error("Expected no error, got", err)
-	}
+	require.NoError(t, sk2.Merge(sk3))
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
 	ratio = 100 * estimateError(res1, exact1)
-	if ratio > 1 {
-		t.Errorf("Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
-	}
-
+	require.LessOrEqual(t, ratio, 1.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 }
 
-func TestHLLTC_EncodeDecode(t *testing.T) {
+func TestHLL_EncodeDecode(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
 	}()
 	sk := NewTestSketch(8)
 	i, r := decodeHash(encodeHash(0xffffff8000000000, sk.p, pp), sk.p, pp)
-	if i != 0xff {
-		t.Error(i)
-	}
-	if r != 1 {
-		t.Error(r)
-	}
+	require.EqualValues(t, 0xff, i)
+	require.EqualValues(t, 1, r)
 
 	i, r = decodeHash(encodeHash(0xff00000000000000, sk.p, pp), sk.p, pp)
-	if i != 0xff {
-		t.Error(i)
-	}
-	if r != 57 {
-		t.Error(r)
-	}
+	require.EqualValues(t, 0xff, i)
+	require.EqualValues(t, 57, r)
 
 	i, r = decodeHash(encodeHash(0xff30000000000000, sk.p, pp), sk.p, pp)
-	if i != 0xff {
-		t.Error(i)
-	}
-	if r != 3 {
-		t.Error(r)
-	}
+	require.EqualValues(t, 0xff, i)
+	require.EqualValues(t, 3, r)
 
 	i, r = decodeHash(encodeHash(0xaa10000000000000, sk.p, pp), sk.p, pp)
-	if i != 0xaa {
-		t.Error(i)
-	}
-	if r != 4 {
-		t.Error(r)
-	}
+	require.EqualValues(t, 0xaa, i)
+	require.EqualValues(t, 4, r)
 
 	i, r = decodeHash(encodeHash(0xaa0f000000000000, sk.p, pp), sk.p, pp)
-	if i != 0xaa {
-		t.Error(i)
-	}
-	if r != 5 {
-		t.Error(r)
-	}
+	require.EqualValues(t, 0xaa, i)
+	require.EqualValues(t, 5, r)
 }
 
-func TestHLLTC_Error(t *testing.T) {
-	_, err := newSketch(3, true)
-	if err == nil {
-		t.Error("precision 3 should return error")
-	}
+func TestHLL_Error(t *testing.T) {
+	_, err := NewSketch(3, true)
+	require.Error(t, err, "precision 3 should return error")
 
-	_, err = newSketch(18, true)
-	if err != nil {
-		t.Error(err)
-	}
+	_, err = NewSketch(18, true)
+	require.NoError(t, err)
 
-	_, err = newSketch(19, true)
-	if err == nil {
-		t.Error("precision 19 should return error")
-	}
+	_, err = NewSketch(19, true)
+	require.Error(t, err, "precision 19 should return error")
 }
 
-func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
-	sk, _ := newSketch(4, true)
+func TestHLL_Marshal_Unmarshal_Sparse(t *testing.T) {
+	sk, _ := NewSketch(4, true)
 	sk.tmpSet = map[uint32]struct{}{26: {}, 40: {}}
 
 	// Add a bunch of values to the sparse representation.
@@ -483,7 +330,7 @@ func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 	}
 
 	// Peeking at the first byte should reveal the version.
-	if got, exp := data[0], byte(1); got != exp {
+	if got, exp := data[0], byte(version); got != exp {
 		t.Fatalf("got byte %v, expected %v", got, exp)
 	}
 
@@ -499,45 +346,37 @@ func TestHLLTC_Marshal_Unmarshal_Sparse(t *testing.T) {
 	}
 }
 
-func TestHLLTC_Marshal_Unmarshal_Dense(t *testing.T) {
-	sk, _ := newSketch(4, false)
+func TestHLL_Marshal_Unmarshal_Dense(t *testing.T) {
+	sk, _ := NewSketch(4, false)
 
 	// Add a bunch of values to the dense representation.
 	for i := uint32(0); i < 10; i++ {
-		sk.regs.set(i, uint8(rand.Int()))
+		sk.regs[i] = uint8(rand.Int())
 	}
 
 	data, err := sk.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Peeking at the first byte should reveal the version.
-	if got, exp := data[0], byte(1); got != exp {
-		t.Fatalf("got byte %v, expected %v", got, exp)
-	}
+	require.EqualValues(t, byte(version), data[0], "got byte %v, expected %v", data[0], byte(version))
 
 	var res Sketch
-	if err := res.UnmarshalBinary(data); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, res.UnmarshalBinary(data))
 
 	// reflect.DeepEqual will always return false when comparing non-nil
 	// functions, so we'll set them to nil.
-	if got, exp := &res, sk; !reflect.DeepEqual(got, exp) {
-		t.Fatalf("got %v, wanted %v", spew.Sdump(got), spew.Sdump(exp))
-	}
+	require.True(t, reflect.DeepEqual(&res, sk), "got %v, wanted %v", spew.Sdump(&res), spew.Sdump(sk))
 }
 
 // Tests that a sketch can be serialised / unserialised and keep an accurate
 // cardinality estimate.
-func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
+func TestHLL_Marshal_Unmarshal_Count(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping test in short mode")
 	}
 
 	count := make(map[string]struct{}, 1000000)
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 
 	buf := make([]byte, 8)
 	for i := 0; i < 1000000; i++ {
@@ -553,27 +392,19 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 
 	gotC := sk.Estimate()
 	epsilon := 15000 // 1.5%
-	if got, exp := math.Abs(float64(int(gotC)-len(count))), epsilon; int(got) > exp {
-		t.Fatalf("error was %v for estimation %d and true cardinality %d", got, gotC, len(count))
-	}
+	require.LessOrEqual(t, math.Abs(float64(int(gotC)-len(count))), float64(epsilon), "error was %v for estimation %d and true cardinality %d", math.Abs(float64(int(gotC)-len(count))), gotC, len(count))
 
 	// Serialise the sketch.
 	sketch, err := sk.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Deserialise.
 	sk = &Sketch{}
-	if err := sk.UnmarshalBinary(sketch); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, sk.UnmarshalBinary(sketch))
 
 	// The count should be the same
 	oldC := gotC
-	if got, exp := sk.Estimate(), oldC; got != exp {
-		t.Fatalf("got %d, expected %d", got, exp)
-	}
+	require.EqualValues(t, oldC, sk.Estimate())
 
 	// Add some more values.
 	for i := 0; i < 1000000; i++ {
@@ -590,50 +421,36 @@ func TestHLLTC_Marshal_Unmarshal_Count(t *testing.T) {
 	// The sketch should still be working correctly.
 	gotC = sk.Estimate()
 	epsilon = 30000 // 1.5%
-	if got, exp := math.Abs(float64(int(gotC)-len(count))), epsilon; int(got) > exp {
-		t.Fatalf("error was %v for estimation %d and true cardinality %d", got, gotC, len(count))
-	}
+	require.LessOrEqual(t, math.Abs(float64(int(gotC)-len(count))), float64(epsilon), "error was %v for estimation %d and true cardinality %d", math.Abs(float64(int(gotC)-len(count))), gotC, len(count))
 }
 
 // Tests that a sketch will be used in Unmarshal if it is unused
-func TestHLLTC_Marshal_Unmarshal_Reuse(t *testing.T) {
-	sk, _ := newSketch(4, true)
+func TestHLL_Marshal_Unmarshal_Reuse(t *testing.T) {
+	sk, _ := NewSketch(4, true)
 	// Add a bunch of values to the sparse representation.
 	for i := 0; i < 10; i++ {
 		sk.sparseList.Append(uint32(rand.Int()))
 	}
 	data, err := sk.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, _ := newSketch(4, true)
+	require.NoError(t, err)
+	res, _ := NewSketch(4, true)
 	// Change the "m" here because it's not adjusted so it'll allow us to
 	// determine if newSketch was called
 	res.m = 1
-	if err := res.UnmarshalBinary(data); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, res.UnmarshalBinary(data))
 
 	// Compare the "m" to make sure it's the same
-	if res.m != 1 {
-		t.Fatalf("UnmarshalBinary created a newSketch Sketch")
-	}
+	require.EqualValues(t, 1, res.m, "UnmarshalBinary created a newSketch Sketch")
 
 	// If we re-use the same sketch, newSketch should be called
-	if err := res.UnmarshalBinary(data); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, res.UnmarshalBinary(data))
 
 	// Compare the "m" to make sure it was changed
-	if res.m == 1 {
-		t.Fatalf("UnmarshalBinary did not create a newSketch Sketch")
-	}
+	require.NotEqual(t, 1, res.m, "UnmarshalBinary did not create a newSketch Sketch")
 }
 
-func TestHLLTC_Unmarshal_ErrorTooShort(t *testing.T) {
-	if err := (&Sketch{}).UnmarshalBinary(nil); err != ErrorTooShort {
-		t.Fatalf("UnmarshalBinary(nil) should fail with ErrorTooShort: %s", err)
-	}
+func TestHLL_Unmarshal_ErrorTooShort(t *testing.T) {
+	require.EqualValues(t, ErrorTooShort, (&Sketch{}).UnmarshalBinary(nil), "UnmarshalBinary(nil) should fail with ErrorTooShort")
 
 	b := []byte{
 		// precision:14, sparse:true, tmpSet:empty,
@@ -642,52 +459,39 @@ func TestHLLTC_Unmarshal_ErrorTooShort(t *testing.T) {
 		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x01, 0x7f,
 	}
-	if err := (&Sketch{}).UnmarshalBinary(b); err != nil {
-		t.Fatalf("UnmarshalBinary failed: %s", err)
-	}
+	require.NoError(t, (&Sketch{}).UnmarshalBinary(b))
 	for i := 0; i < len(b)-1; i++ {
 		sk := &Sketch{}
 		err := sk.UnmarshalBinary(b[0:i])
-		if err != ErrorTooShort {
-			t.Fatalf("should fail for incomplete bytes: i=%d", i)
-		}
+		require.EqualValues(t, ErrorTooShort, err, "should fail for incomplete bytes: i=%d", i)
 	}
 }
 
-func TestHLLTC_Clone(t *testing.T) {
+func TestHLL_Clone(t *testing.T) {
 	sk1 := NewTestSketch(16)
 
 	sk1.Insert(toByte(0x00010fffffffffff))
 	sk1.Insert(toByte(0x0002ffffffffffff))
 	sk1.Insert(toByte(0x0003000000000000))
+	sk1.Insert(toByte(0x000000))
 	sk1.Insert(toByte(0x0003000000000001))
 	sk1.Insert(toByte(0xff03700000000000))
 
 	n := sk1.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 6, n)
 
 	sk2 := sk1.Clone()
-	if m, n := sk1.Estimate(), sk2.Estimate(); m != n {
-		t.Errorf("Expected %v, got %v1", m, n)
-	}
-	if !isSketchEqual(sk1, sk2) {
-		t.Errorf("Expected %v, got %v1", sk1, sk2)
-	}
+	require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+	require.True(t, isSketchEqual(sk1, sk2))
 
 	sk1.toNormal()
 	sk2 = sk1.Clone()
 
-	if m, n := sk1.Estimate(), sk2.Estimate(); m != n {
-		t.Errorf("Expected %v, got %v1", m, n)
-	}
-	if !isSketchEqual(sk1, sk2) {
-		t.Errorf("Expected %v, got %v1", sk1, sk2)
-	}
+	require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+	require.True(t, isSketchEqual(sk1, sk2))
 }
 
-func TestHLLTC_Add_Hash(t *testing.T) {
+func TestHLL_Add_Hash(t *testing.T) {
 	hash = nopHash
 	defer func() {
 		hash = hashFunc
@@ -695,9 +499,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
-	if n != 0 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 0, n)
 
 	sk.InsertHash(0x00010fffffffffff)
 	sk.InsertHash(0x00020fffffffffff)
@@ -707,9 +509,7 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 	sk.InsertHash(0x00050fffffffffff)
 
 	n = sk.Estimate()
-	if n != 5 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 5, n)
 
 	sk.toNormal()
 	sk.InsertHash(0x10010f00ffffffff)
@@ -721,33 +521,34 @@ func TestHLLTC_Add_Hash(t *testing.T) {
 
 	// not mutated, still returns correct count
 	n = sk.Estimate()
-	if n != 11 {
-		t.Error(n)
-	}
+	require.EqualValues(t, 11, n)
 
 	sk.InsertHash(0x00060fffffffffff)
 
 	// mutated
 	n = sk.Estimate()
-	if n != 12 {
-		t.Error(n)
-	}
-
+	require.EqualValues(t, 12, n)
 }
 
 func isSketchEqual(sk1, sk2 *Sketch) bool {
 	switch {
 	case sk1.alpha != sk2.alpha:
+		fmt.Printf("alpha mismatch: %f != %f", sk1.alpha, sk2.alpha)
 		return false
 	case sk1.p != sk2.p:
-		return false
-	case sk1.b != sk2.b:
+		fmt.Printf("p mismatch: %d != %d", sk1.p, sk2.p)
 		return false
 	case sk1.m != sk2.m:
+		fmt.Printf("m mismatch: %d != %d", sk1.m, sk2.m)
 		return false
 	case !reflect.DeepEqual(sk1.sparseList, sk2.sparseList):
+		fmt.Printf("sparseList mismatch: %v != %v", sk1.sparseList, sk2.sparseList)
 		return false
+	case len(sk1.regs) == 0 && len(sk2.regs) == 0:
+		// Both are empty, consider them equal
+		return true
 	case !reflect.DeepEqual(sk1.regs, sk2.regs):
+		fmt.Printf("regs mismatch: %v != %v", sk1.regs, sk2.regs)
 		return false
 	default:
 		return true
@@ -755,7 +556,7 @@ func isSketchEqual(sk1, sk2 *Sketch) bool {
 }
 
 func NewTestSketch(p uint8) *Sketch {
-	sk, _ := newSketch(p, true)
+	sk, _ := NewSketch(p, true)
 	return sk
 }
 
@@ -808,43 +609,43 @@ func Benchmark_Size_New_Sparse(b *testing.B) {
 	var sk *Sketch
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		sk, _ = newSketch(16, true)
+		sk, _ = NewSketch(16, true)
 	}
 	_ = sk
 }
 
 func Benchmark_Add_100(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 100)
 }
 
 func Benchmark_Add_1000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 1000)
 }
 
 func Benchmark_Add_10000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 10000)
 }
 
 func Benchmark_Add_100000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 100000)
 }
 
 func Benchmark_Add_1000000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 1000000)
 }
 
 func Benchmark_Add_10000000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 10000000)
 }
 
 func Benchmark_Add_100000000(b *testing.B) {
-	sk, _ := newSketch(16, true)
+	sk, _ := NewSketch(16, true)
 	benchmarkAdd(b, sk, 100000000)
 }
 
@@ -854,7 +655,7 @@ func randStr(n int) string {
 }
 
 func benchmark(precision uint8, n int) {
-	hll, _ := newSketch(precision, true)
+	hll, _ := NewSketch(precision, true)
 
 	for i := 0; i < n; i++ {
 		s := []byte(randStr(i))
@@ -953,5 +754,33 @@ func BenchmarkZipf(b *testing.B) {
 			}
 			b.Logf("Result: %d values, estimated cardinality %d", b.N/batchSize*batchSize, sk.Estimate())
 		})
+	}
+}
+
+func TestHLL_Merge_Order(t *testing.T) {
+	for _, count1 := range []int{100, 1000, 10000, 100000, 1000000} {
+		for _, count2 := range []int{100, 1000, 10000, 100000, 1000000} {
+			t.Run(fmt.Sprintf("count1=%d, count2=%d", count1, count2), func(t *testing.T) {
+				sk1 := New14()
+				sk2 := New14()
+
+				for i := 0; i < count1; i++ {
+					sk1.Insert([]byte(fmt.Sprintf("a%d", i)))
+				}
+				for i := 0; i < count2; i++ {
+					sk2.Insert([]byte(fmt.Sprintf("b%d", i)))
+				}
+
+				skX := New14()
+				skX.Merge(sk1)
+				skX.Merge(sk2)
+
+				skY := New14()
+				skY.Merge(sk2)
+				skY.Merge(sk1)
+
+				require.EqualValues(t, skX.Estimate(), skY.Estimate())
+			})
+		}
 	}
 }
