@@ -784,3 +784,30 @@ func TestHLL_Merge_Order(t *testing.T) {
 		}
 	}
 }
+
+func TestHLL_Add_Out_Of_Order(t *testing.T) {
+	for _, sz := range []int{100, 1000, 10000, 100000, 1000000} {
+		t.Run(fmt.Sprintf("size=%d", sz), func(t *testing.T) {
+			data := make([]uint64, sz)
+			for i := range data {
+				data[i] = uint64(rand.Int63())
+			}
+
+			sk1 := New14()
+			for _, v := range data {
+				sk1.Insert([]byte(fmt.Sprintf("a%d", v)))
+			}
+
+			rand.Shuffle(len(data), func(i, j int) {
+				data[i], data[j] = data[j], data[i]
+			})
+
+			sk2 := New14()
+			for _, v := range data {
+				sk2.Insert([]byte(fmt.Sprintf("a%d", v)))
+			}
+
+			require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+		})
+	}
+}
