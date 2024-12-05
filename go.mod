@@ -1,8 +1,8 @@
 module github.com/axiomhq/hyperloglog
 
-go 1.21
+go 1.23
 
-toolchain go1.23.0
+toolchain go1.23.4
 
 require (
 	github.com/davecgh/go-spew v1.1.1
@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/kamstrup/intmap v0.5.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect

@@ -317,7 +317,9 @@ func TestHLL_Error(t *testing.T) {
 
 func TestHLL_Marshal_Unmarshal_Sparse(t *testing.T) {
 	sk, _ := NewSketch(4, true)
-	sk.tmpSet = map[uint32]struct{}{26: {}, 40: {}}
+	sk.tmpSet = newSet(2)
+	sk.tmpSet.add(26)
+	sk.tmpSet.add(40)
 
 	// Add a bunch of values to the sparse representation.
 	for i := 0; i < 10; i++ {
@@ -809,5 +811,41 @@ func TestHLL_Add_Out_Of_Order(t *testing.T) {
 
 			require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
 		})
+	}
+}
+
+func benchmarkMerge(b *testing.B, size1, size2 int) {
+	// Generate data for first sketch
+	sk1 := New14()
+	for i := 0; i < size1; i++ {
+		sk1.Insert([]byte(fmt.Sprintf("a%d", i)))
+	}
+
+	// Generate data for second sketch
+	sk2 := New14()
+	for i := 0; i < size2; i++ {
+		sk2.Insert([]byte(fmt.Sprintf("b%d", i)))
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		sk := New14()
+		sk.Merge(sk1)
+		sk.Merge(sk2)
+	}
+}
+
+func Benchmark_Merge(b *testing.B) {
+	sizes := []int{100, 10000, 1000000}
+
+	for _, size1 := range sizes {
+		for _, size2 := range sizes {
+			name := fmt.Sprintf("size1=%d/size2=%d", size1, size2)
+			b.Run(name, func(b *testing.B) {
+				benchmarkMerge(b, size1, size2)
+			})
+		}
 	}
 }
