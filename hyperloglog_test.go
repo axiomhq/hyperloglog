@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -467,6 +468,58 @@ func TestHLL_Unmarshal_ErrorTooShort(t *testing.T) {
 		err := sk.UnmarshalBinary(b[0:i])
 		require.EqualValues(t, ErrorTooShort, err, "should fail for incomplete bytes: i=%d", i)
 	}
+}
+
+func TestHLL_AppendBinary(t *testing.T) {
+	sk := NewTestSketch(16)
+	for i := 0; i < 10; i++ {
+		sk.InsertHash(uint64(rand.Int()))
+	}
+	data1, err := sk.MarshalBinary()
+	require.NoError(t, err)
+
+	bufSize := rand.Intn(100)
+	buf := make([]byte, bufSize)
+	for i := range buf {
+		buf[i] = byte(rand.Intn(256))
+	}
+	bufCopy := slices.Clone(buf)
+	data2, err := sk.AppendBinary(buf)
+	require.NoError(t, err)
+
+	require.Len(t, data2, len(data1)+len(bufCopy))
+	require.Equal(t, bufCopy, data2[:len(bufCopy)])
+	require.Equal(t, data1, data2[len(bufCopy):])
+}
+
+func Benchmark_HLL_Marshal(b *testing.B) {
+	run := func(precision uint8, sparse bool) {
+		name := fmt.Sprintf("precision%d_", precision)
+		if sparse {
+			name += "sparse"
+		} else {
+			name += "dense"
+		}
+		b.Run(name, func(b *testing.B) {
+			sk, _ := NewSketch(precision, sparse)
+			for i := 0; i < 1000; i++ {
+				sk.InsertHash(uint64(rand.Int()))
+			}
+			b.Run("MarshalBinary", func(b *testing.B) {
+				for i := 0; i < b.N; i++ {
+					_, _ = sk.MarshalBinary()
+				}
+			})
+			b.Run("AppendBinary", func(b *testing.B) {
+				var buf []byte
+				for i := 0; i < b.N; i++ {
+					buf, _ = sk.AppendBinary(buf[:0])
+				}
+			})
+		})
+	}
+	run(16, true)
+	run(16, false)
 }
 
 func TestHLL_Clone(t *testing.T) {
