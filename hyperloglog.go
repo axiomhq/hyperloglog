@@ -24,11 +24,20 @@ type Sketch struct {
 	regs       []uint8
 }
 
-func New() *Sketch           { return New14() }                     // New returns a HyperLogLog Sketch with 2^14 registers (precision 14)
-func New14() *Sketch         { return newSketchNoError(14, true) }  // New14 returns a HyperLogLog Sketch with 2^14 registers (precision 14)
-func New16() *Sketch         { return newSketchNoError(16, true) }  // New16 returns a HyperLogLog Sketch with 2^16 registers (precision 16)
-func NewNoSparse() *Sketch   { return newSketchNoError(14, false) } // NewNoSparse returns a HyperLogLog Sketch with 2^14 registers (precision 14) that will not use a sparse representation
-func New16NoSparse() *Sketch { return newSketchNoError(16, false) } // New16NoSparse returns a HyperLogLog Sketch with 2^16 registers (precision 16) that will not use a sparse representation
+// New returns a HyperLogLog Sketch with 2^14 registers (precision 14)
+func New() *Sketch { return New14() }
+
+// New14 returns a HyperLogLog Sketch with 2^14 registers (precision 14)
+func New14() *Sketch { return newSketchNoError(14, true) }
+
+// New16 returns a HyperLogLog Sketch with 2^16 registers (precision 16)
+func New16() *Sketch { return newSketchNoError(16, true) }
+
+// NewNoSparse returns a HyperLogLog Sketch with 2^14 registers (precision 14) that will not use a sparse representation
+func NewNoSparse() *Sketch { return newSketchNoError(14, false) }
+
+// New16NoSparse returns a HyperLogLog Sketch with 2^16 registers (precision 16) that will not use a sparse representation
+func New16NoSparse() *Sketch { return newSketchNoError(16, false) }
 
 func newSketchNoError(precision uint8, sparse bool) *Sketch {
 	sk, _ := NewSketch(precision, sparse)
