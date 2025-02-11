@@ -195,15 +195,18 @@ func (sk *Sketch) mergeSparse() {
 			continue
 		}
 
-		x1, x2 := iter.Peek(), keys[i]
+		x1, adv := iter.Peek()
+		x2 := keys[i]
 		if x1 == x2 {
-			newList.Append(iter.Next())
+			newList.Append(x1)
+			iter.Advance(x1, adv)
 			i++
 		} else if x1 > x2 {
 			newList.Append(x2)
 			i++
 		} else {
-			newList.Append(iter.Next())
+			newList.Append(x1)
+			iter.Advance(x1, adv)
 		}
 	}
 

@@ -25,9 +25,13 @@ func (iter *iterator) Next() uint32 {
 	return n
 }
 
-func (iter *iterator) Peek() uint32 {
-	n, _ := iter.v.decode(iter.i, iter.last)
-	return n
+func (iter *iterator) Peek() (uint32, int) {
+	return iter.v.decode(iter.i, iter.last)
+}
+
+func (iter *iterator) Advance(last uint32, i int) {
+	iter.last = last
+	iter.i = i
 }
 
 func (iter iterator) HasNext() bool {
