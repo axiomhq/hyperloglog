@@ -149,7 +149,7 @@ func (v variableLengthList) AppendBinary(data []byte) ([]byte, error) {
 	return data, nil
 }
 
-func (v variableLengthList) decode(i int, last uint32) (uint32, int) {
+func (v variableLengthList) decode(i int) (uint32, int) {
 	var x uint32
 	j := i
 	for ; v[j]&0x80 != 0; j++ {
