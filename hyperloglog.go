@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"sort"
 )
 
 const (
@@ -177,11 +176,11 @@ func (sk *Sketch) mergeSparse() {
 		return
 	}
 
-	keys := make(uint64Slice, 0, sk.tmpSet.Len())
+	keys := make([]uint32, 0, sk.tmpSet.Len())
 	sk.tmpSet.ForEach(func(k uint32) {
 		keys = append(keys, k)
 	})
-	sort.Sort(keys)
+	slices.Sort(keys)
 
 	newList := newCompressedList(4*sk.tmpSet.Len() + sk.sparseList.Len())
 	for iter, i := sk.sparseList.Iter(), 0; iter.HasNext() || i < len(keys); {
