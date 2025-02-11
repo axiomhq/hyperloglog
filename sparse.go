@@ -64,11 +64,7 @@ func (s *set) Len() int {
 }
 
 func (s *set) add(v uint32) bool {
-	if s.m.Has(v) {
-		return false
-	}
-	s.m.Add(v)
-	return true
+	return s.m.Add(v)
 }
 
 func (s *set) Clone() *set {
