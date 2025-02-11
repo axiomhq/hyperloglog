@@ -318,7 +318,7 @@ func TestHLL_Error(t *testing.T) {
 
 func TestHLL_Marshal_Unmarshal_Sparse(t *testing.T) {
 	sk, _ := NewSketch(4, true)
-	sk.tmpSet = newSet(2)
+	sk.tmpSet = makeSet(2)
 	sk.tmpSet.add(26)
 	sk.tmpSet.add(40)
 
