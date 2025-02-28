@@ -110,7 +110,7 @@ func (v *compressedList) Len() int {
 }
 
 func (v *compressedList) decode(i int, last uint32) (uint32, int) {
-	n, i := v.b.decode(i, last)
+	n, i := v.b.decode(i)
 	return n + last, i
 }
 
