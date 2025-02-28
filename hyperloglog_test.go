@@ -318,7 +318,7 @@ func TestHLL_Error(t *testing.T) {
 
 func TestHLL_Marshal_Unmarshal_Sparse(t *testing.T) {
 	sk, _ := NewSketch(4, true)
-	sk.tmpSet = newSet(2)
+	sk.tmpSet = makeSet(2)
 	sk.tmpSet.add(26)
 	sk.tmpSet.add(40)
 
@@ -617,23 +617,22 @@ func NewTestSketch(p uint8) *Sketch {
 
 // Generate random data to add to the sketch.
 func genData(num int) [][]byte {
-	out := make([][]byte, 0, num)
-	buf := make([]byte, 8)
+	const dataLen = 8
+	out := make([][]byte, num)
+	numBytes := dataLen * num
+	buf := make([]byte, numBytes)
 
-	for i := 0; i < num; i++ {
-		// generate 8 random bytes
-		n, err := crand.Read(buf)
-		if err != nil {
-			panic(err)
-		} else if n != 8 {
-			panic(fmt.Errorf("only %d bytes generated", n))
-		}
-		copiedBuf := make([]byte, 8)
-		copy(copiedBuf, buf) // copy the contents of buf to copiedBuf
-		out = append(out, copiedBuf)
+	// generate random bytes
+	n, err := crand.Read(buf)
+	if err != nil {
+		panic(err)
+	} else if n != numBytes {
+		panic(fmt.Errorf("only %d bytes generated, expected %d", n, numBytes))
 	}
-	if len(out) != num {
-		panic(fmt.Sprintf("wrong size slice: %d", num))
+
+	for i := range out {
+		out[i] = buf[:dataLen]
+		buf = buf[dataLen:]
 	}
 	return out
 }

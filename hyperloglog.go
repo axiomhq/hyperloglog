@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"sort"
 )
 
 const (
@@ -19,7 +18,7 @@ type Sketch struct {
 	p          uint8
 	m          uint32
 	alpha      float64
-	tmpSet     *set
+	tmpSet     set
 	sparseList *compressedList
 	regs       []uint8
 }
@@ -55,7 +54,7 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 		alpha: alpha(float64(m)),
 	}
 	if sparse {
-		s.tmpSet = newSet(0)
+		s.tmpSet = makeSet(0)
 		s.sparseList = newCompressedList(0)
 	} else {
 		s.regs = make([]uint8, m)
@@ -141,7 +140,7 @@ func (sk *Sketch) toNormal() {
 		sk.insert(i, r)
 	}
 
-	sk.tmpSet = nil
+	sk.tmpSet = nilSet
 	sk.sparseList = nil
 }
 
@@ -177,11 +176,11 @@ func (sk *Sketch) mergeSparse() {
 		return
 	}
 
-	keys := make(uint64Slice, 0, sk.tmpSet.Len())
+	keys := make([]uint32, 0, sk.tmpSet.Len())
 	sk.tmpSet.ForEach(func(k uint32) {
 		keys = append(keys, k)
 	})
-	sort.Sort(keys)
+	slices.Sort(keys)
 
 	newList := newCompressedList(4*sk.tmpSet.Len() + sk.sparseList.Len())
 	for iter, i := sk.sparseList.Iter(), 0; iter.HasNext() || i < len(keys); {
@@ -196,20 +195,23 @@ func (sk *Sketch) mergeSparse() {
 			continue
 		}
 
-		x1, x2 := iter.Peek(), keys[i]
+		x1, adv := iter.Peek()
+		x2 := keys[i]
 		if x1 == x2 {
-			newList.Append(iter.Next())
+			newList.Append(x1)
+			iter.Advance(x1, adv)
 			i++
 		} else if x1 > x2 {
 			newList.Append(x2)
 			i++
 		} else {
-			newList.Append(iter.Next())
+			newList.Append(x1)
+			iter.Advance(x1, adv)
 		}
 	}
 
 	sk.sparseList = newList
-	sk.tmpSet = newSet(0)
+	sk.tmpSet = makeSet(0)
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
@@ -303,7 +305,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 
 		// Unmarshal the tmp_set.
 		tssz := binary.BigEndian.Uint32(data[4:8])
-		sk.tmpSet = newSet(int(tssz))
+		sk.tmpSet = makeSet(int(tssz))
 
 		// We need to unmarshal tssz values in total, and each value requires us
 		// to read 4 bytes.
@@ -319,7 +321,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 
 	// Using the dense Sketch.
 	sk.sparseList = nil
-	sk.tmpSet = nil
+	sk.tmpSet = nilSet
 
 	if v == 1 {
 		return sk.unmarshalBinaryV1(data[8:], b)
