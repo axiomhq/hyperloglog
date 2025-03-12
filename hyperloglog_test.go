@@ -901,3 +901,38 @@ func Benchmark_Merge(b *testing.B) {
 		}
 	}
 }
+
+func benchmarkMarshalBinary(b *testing.B, size uint8, sparse bool) {
+	sk, _ := NewSketch(size, sparse)
+	for i := 0; i < int(size); i++ {
+		sk.Insert([]byte(fmt.Sprintf("a%d", i)))
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = sk.MarshalBinary()
+	}
+}
+
+func Benchmark_MarshalBinary(b *testing.B) {
+	sizes := []int{100, 10000, 1000000}
+	precisions := []uint8{12, 14, 16}
+	sparses := []bool{true, false}
+
+	for _, precision := range precisions {
+		for _, size := range sizes {
+			for _, isSparse := range sparses {
+				name := fmt.Sprintf("Precision_%d/Size_%d/", precision, size)
+				if isSparse {
+					name += "Sparse"
+				} else {
+					name += "NoSparse"
+				}
+				b.Run(name, func(b *testing.B) {
+					benchmarkMarshalBinary(b, precision, isSparse)
+				})
+			}
+		}
+	}
+}
