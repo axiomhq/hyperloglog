@@ -902,9 +902,9 @@ func Benchmark_Merge(b *testing.B) {
 	}
 }
 
-func benchmarkMarshalBinary(b *testing.B, size uint8, sparse bool) {
-	sk, _ := NewSketch(size, sparse)
-	for i := 0; i < int(size); i++ {
+func benchmarkMarshalBinary(b *testing.B, precision uint8, size int, sparse bool) {
+	sk, _ := NewSketch(precision, sparse)
+	for i := 0; i < size; i++ {
 		sk.Insert([]byte(fmt.Sprintf("a%d", i)))
 	}
 
@@ -930,7 +930,7 @@ func Benchmark_MarshalBinary(b *testing.B) {
 					name += "NoSparse"
 				}
 				b.Run(name, func(b *testing.B) {
-					benchmarkMarshalBinary(b, precision, isSparse)
+					benchmarkMarshalBinary(b, precision, size, isSparse)
 				})
 			}
 		}
