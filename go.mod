@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgryski/go-metro v0.0.0-20250106013310-edb8663e5e33
-	github.com/kamstrup/intmap v0.5.1
+	github.com/kamstrup/intmap v0.5.2
 	github.com/stretchr/testify v1.9.0
 )
 
