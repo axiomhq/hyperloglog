@@ -255,14 +255,14 @@ func TestHLL_Merge_Complex(t *testing.T) {
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact1, res1, ratio)
 
 	exact2 := uint64(len(unique)) / 2
-	res2 := uint64(sk1.Estimate())
-	ratio = 100 * estimateError(res1, exact1)
+	res2 := uint64(sk2.Estimate())
+	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
 	require.NoError(t, sk2.Merge(sk1))
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
-	ratio = 100 * estimateError(res1, exact1)
+	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
 	for i := 1; i <= 500000; i++ {
@@ -274,7 +274,7 @@ func TestHLL_Merge_Complex(t *testing.T) {
 	require.NoError(t, sk2.Merge(sk3))
 	exact2 = uint64(len(unique))
 	res2 = uint64(sk2.Estimate())
-	ratio = 100 * estimateError(res1, exact1)
+	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 1.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 }
 
