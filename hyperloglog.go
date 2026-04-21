@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"sync"
 )
 
 const (
@@ -71,6 +72,12 @@ func (sk *Sketch) Clone() *Sketch {
 	clone.tmpSet = sk.tmpSet.Clone()
 	clone.sparseList = sk.sparseList.Clone()
 	return &clone
+}
+
+func (sk *Sketch) Reset() {
+	sk.tmpSet.m.Clear()
+	sk.sparseList.reset()
+	sk.regs = sk.regs[:0]
 }
 
 func (sk *Sketch) maybeToNormal() {
@@ -171,6 +178,22 @@ func (sk *Sketch) Estimate() uint64 {
 	return uint64(est + 0.5)
 }
 
+var compressedListPool = sync.Pool{}
+
+func getCompressedList(capacity int) *compressedList {
+	c := compressedListPool.Get()
+	if c == nil {
+		return newCompressedList(capacity)
+	}
+
+	return c.(*compressedList)
+}
+
+func putCompressedList(c *compressedList) {
+	c.reset()
+	compressedListPool.Put(c)
+}
+
 func (sk *Sketch) mergeSparse() {
 	if sk.tmpSet.Len() == 0 {
 		return
@@ -182,7 +205,7 @@ func (sk *Sketch) mergeSparse() {
 	})
 	slices.Sort(keys)
 
-	newList := newCompressedList(4*sk.tmpSet.Len() + sk.sparseList.Len())
+	newList := getCompressedList(4*sk.tmpSet.Len() + sk.sparseList.Len())
 	for iter, i := sk.sparseList.Iter(), 0; iter.HasNext() || i < len(keys); {
 		if !iter.HasNext() {
 			newList.Append(keys[i])
@@ -210,8 +233,10 @@ func (sk *Sketch) mergeSparse() {
 		}
 	}
 
+	putCompressedList(sk.sparseList)
+
 	sk.sparseList = newList
-	sk.tmpSet = makeSet(0)
+	sk.tmpSet.m.Clear()
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
