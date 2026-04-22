@@ -75,9 +75,10 @@ func (sk *Sketch) Clone() *Sketch {
 }
 
 func (sk *Sketch) Reset() {
-	sk.tmpSet.m.Clear()
+	sk.tmpSet.reset()
 	sk.sparseList.reset()
-	sk.regs = sk.regs[:0]
+	
+	clear(sk.regs)
 }
 
 func (sk *Sketch) maybeToNormal() {

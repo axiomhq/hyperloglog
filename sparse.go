@@ -41,6 +41,12 @@ type set struct {
 	m *intmap.Set[uint32]
 }
 
+func (s set) reset() {
+	if s.m != nil {
+		s.m.Clear()
+	}
+}
+
 var nilSet set
 
 func makeSet(size int) set {

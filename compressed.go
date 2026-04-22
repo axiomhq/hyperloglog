@@ -55,6 +55,10 @@ func (v *compressedList) Clone() *compressedList {
 }
 
 func (v *compressedList) reset() {
+	if v == nil {
+		return
+	}
+
 	v.count = 0
 	v.last = 0
 	v.b = v.b[:0]
