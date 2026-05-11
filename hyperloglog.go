@@ -352,3 +352,15 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 	sk.regs = data[8:]
 	return nil
 }
+
+// Reset resets the Sketch to its initial state to allow for reuse.
+func (sk *Sketch) Reset() {
+	if sk.sparse() {
+		sk.tmpSet = makeSet(0)
+		sk.sparseList = newCompressedList(0)
+		return
+	}
+	for i := range sk.regs {
+		sk.regs[i] = 0
+	}
+}
