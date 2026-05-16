@@ -75,9 +75,12 @@ func (sk *Sketch) Clone() *Sketch {
 }
 
 func (sk *Sketch) Reset() {
-	sk.tmpSet.reset()
-	sk.sparseList.reset()
-	
+	if sk.sparse() {
+		sk.tmpSet.reset()
+		sk.sparseList.reset()
+		return
+	}
+
 	clear(sk.regs)
 }
 
