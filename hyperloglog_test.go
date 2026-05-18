@@ -940,7 +940,7 @@ func Benchmark_MarshalBinary(b *testing.B) {
 func TestReset(t *testing.T) {
 	t.Parallel()
 
-	sk, _ := NewSketch(16, true)
+	sk := New16()
 	sk.Insert([]byte("foo"))
 	sk.Insert([]byte("bar"))
 	require.NotEqual(t, uint64(0), sk.Estimate())
