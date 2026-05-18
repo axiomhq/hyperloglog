@@ -360,7 +360,5 @@ func (sk *Sketch) Reset() {
 		sk.sparseList = newCompressedList(0)
 		return
 	}
-	for i := range sk.regs {
-		sk.regs[i] = 0
-	}
+	clear(sk.regs)
 }
