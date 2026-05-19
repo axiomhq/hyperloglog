@@ -51,14 +51,17 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		initial:    newState(sparse),
-		current:    newState(sparse),
-		m:          m,
-		p:          precision,
-		alpha:      alpha(float64(m)),
-		tmpSet:     makeSet(0),
-		sparseList: newCompressedList(0),
-		regs:       make([]uint8, m),
+		initial: newState(sparse),
+		current: newState(sparse),
+		m:       m,
+		p:       precision,
+		alpha:   alpha(float64(m)),
+	}
+	if sparse {
+		s.tmpSet = makeSet(0)
+		s.sparseList = newCompressedList(0)
+	} else {
+		s.regs = make([]uint8, m)
 	}
 	return s, nil
 }
@@ -353,8 +356,10 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 
 // Reset will clear the internal state and restore it current mode to its initial state.
 func (sk *Sketch) Reset() {
-	sk.tmpSet.clear()
-	sk.sparseList.clear()
+	if sk.initial.isSparse() {
+		sk.tmpSet.clear()
+		sk.sparseList.clear()
+	}
 	clear(sk.regs)
 	sk.current = sk.initial
 }

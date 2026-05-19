@@ -442,7 +442,7 @@ func TestHLL_Marshal_Unmarshal_Reuse(t *testing.T) {
 	require.NoError(t, res.UnmarshalBinary(data))
 
 	// Compare the "m" to make sure it's the same
-	require.EqualValues(t, 1, res.m, "UnmarshalBinary created a newSketch Sketch")
+	require.EqualValues(t, 0x10, res.m, "UnmarshalBinary created a newSketch Sketch")
 
 	// If we re-use the same sketch, newSketch should be called
 	require.NoError(t, res.UnmarshalBinary(data))
@@ -937,13 +937,20 @@ func Benchmark_MarshalBinary(b *testing.B) {
 }
 
 func TestReset(t *testing.T) {
-	sk := NewTestSketch(16)
-
-	allocs := testing.AllocsPerRun(1000, func() {
-		sk.Reset()
-	})
-
-	assert.Zero(t, allocs, "Must report an alloc total of zero")
+	for _, tc := range []struct {
+		name string
+		sk   *Sketch
+	}{
+		{name: "dense", sk: New16NoSparse()},
+		{name: "sparse", sk: New16()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			allocs := testing.AllocsPerRun(1000, func() {
+				tc.sk.Reset()
+			})
+			assert.Zero(t, allocs, "Must report an alloc total of zero")
+		})
+	}
 }
 
 func BenchmarkReset(b *testing.B) {
