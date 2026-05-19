@@ -954,13 +954,37 @@ func TestReset(t *testing.T) {
 }
 
 func BenchmarkReset(b *testing.B) {
-	sk := NewTestSketch(16)
+	b.Run("sketch-16/sparse-initialized", func(b *testing.B) {
+		sk := New16()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sk.Reset()
+		}
+		_ = sk
+	})
 
-	b.ResetTimer()
-	b.ReportAllocs()
-	for range b.N {
-		sk.Reset()
-	}
+	b.Run("sketch-16/dense-initialized", func(b *testing.B) {
+		sk := New16NoSparse()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sk.Reset()
+		}
+		_ = sk
+	})
 
-	_ = sk
+	b.Run("sketch-16/sparse-promoted", func(b *testing.B) {
+		sk := New16()
+		for item := range 1_000_000 {
+			sk.InsertHash(uint64(item))
+		}
+
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sk.Reset()
+		}
+		_ = sk
+	})
 }

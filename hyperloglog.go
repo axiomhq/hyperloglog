@@ -356,6 +356,10 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 
 // Reset will clear the internal state and restore it current mode to its initial state.
 func (sk *Sketch) Reset() {
+	// In order to perserve users performance/behaviour expectations,
+	// this will only clear the sparse states if it was initialized as sparse.
+	// When the sketch is initialised as dense, the insert operation will not use the sparse states,
+	// so it makes sense to to avoid clearing them in that scenario.
 	if sk.initial.isSparse() {
 		sk.tmpSet.clear()
 		sk.sparseList.clear()
