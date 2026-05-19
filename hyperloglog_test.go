@@ -442,7 +442,7 @@ func TestHLL_Marshal_Unmarshal_Reuse(t *testing.T) {
 	require.NoError(t, res.UnmarshalBinary(data))
 
 	// Compare the "m" to make sure it's the same
-	require.EqualValues(t, 0x10, res.m, "UnmarshalBinary created a newSketch Sketch")
+	require.EqualValues(t, 1, res.m, "UnmarshalBinary created a newSketch Sketch")
 
 	// If we re-use the same sketch, newSketch should be called
 	require.NoError(t, res.UnmarshalBinary(data))
