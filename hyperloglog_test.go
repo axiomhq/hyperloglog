@@ -945,10 +945,20 @@ func TestReset(t *testing.T) {
 		{name: "sparse", sk: New16()},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			expect := tc.sk.Clone()
+
 			allocs := testing.AllocsPerRun(1000, func() {
 				tc.sk.Reset()
 			})
 			assert.Zero(t, allocs, "Must report an alloc total of zero")
+
+			for val := 0; val < 1000; val++ {
+				item := []byte(fmt.Sprintf("unique_%d", val))
+				expect.Insert(item)
+				tc.sk.Insert(item)
+			}
+
+			assert.Equal(t, expect.Estimate(), tc.sk.Estimate(), "Must have the same estimated value")
 		})
 	}
 }
