@@ -69,6 +69,10 @@ func (s set) add(v uint32) bool {
 	return s.m.Add(v)
 }
 
+func (s set) clear() {
+	s.m.Clear()
+}
+
 func (s set) Clone() set {
 	if s == nilSet {
 		return nilSet
