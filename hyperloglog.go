@@ -15,6 +15,8 @@ const (
 )
 
 type Sketch struct {
+	initial    state
+	current    state
 	p          uint8
 	m          uint32
 	alpha      float64
@@ -49,20 +51,19 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		m:     m,
-		p:     precision,
-		alpha: alpha(float64(m)),
-	}
-	if sparse {
-		s.tmpSet = makeSet(0)
-		s.sparseList = newCompressedList(0)
-	} else {
-		s.regs = make([]uint8, m)
+		initial:    newState(sparse),
+		current:    newState(sparse),
+		m:          m,
+		p:          precision,
+		alpha:      alpha(float64(m)),
+		tmpSet:     makeSet(0),
+		sparseList: newCompressedList(0),
+		regs:       make([]uint8, m),
 	}
 	return s, nil
 }
 
-func (sk *Sketch) sparse() bool { return sk.sparseList != nil }
+func (sk *Sketch) sparse() bool { return sk.current.isSparse() }
 
 // Clone returns a deep copy of sk.
 func (sk *Sketch) Clone() *Sketch {
@@ -140,8 +141,9 @@ func (sk *Sketch) toNormal() {
 		sk.insert(i, r)
 	}
 
-	sk.tmpSet = nilSet
-	sk.sparseList = nil
+	sk.tmpSet.clear()
+	sk.sparseList.clear()
+	sk.current = stateDense
 }
 
 func (sk *Sketch) insert(i uint32, r uint8) { sk.regs[i] = max(r, sk.regs[i]) }
@@ -211,7 +213,7 @@ func (sk *Sketch) mergeSparse() {
 	}
 
 	sk.sparseList = newList
-	sk.tmpSet = makeSet(0)
+	sk.tmpSet.clear()
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
@@ -234,7 +236,7 @@ func (sk *Sketch) AppendBinary(data []byte) ([]byte, error) {
 
 	if sk.sparse() {
 		// It's using the sparse Sketch.
-		data = append(data, byte(1))
+		data = append(data, sk.current.Byte())
 
 		// Add the tmp_set
 		data, err := sk.tmpSet.AppendBinary(data)
@@ -247,7 +249,7 @@ func (sk *Sketch) AppendBinary(data []byte) ([]byte, error) {
 	}
 
 	// It's using the dense Sketch.
-	data = append(data, byte(0))
+	data = append(data, sk.current.Byte())
 
 	// Add the dense sketch Sketch.
 	sz := len(sk.regs)
@@ -287,7 +289,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	b := data[2]
 
 	// Determine if we need a sparse Sketch
-	sparse := data[3] == byte(1)
+	sparse := state(data[3]).isSparse()
 
 	// Make a newSketch Sketch if the precision doesn't match or if the Sketch was used
 	if sk.p != p || sk.regs != nil || sk.tmpSet.Len() > 0 || (sk.sparseList != nil && sk.sparseList.Len() > 0) {
@@ -319,10 +321,6 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		return sk.sparseList.UnmarshalBinary(data[tsLastByte:])
 	}
 
-	// Using the dense Sketch.
-	sk.sparseList = nil
-	sk.tmpSet = nilSet
-
 	if v == 1 {
 		return sk.unmarshalBinaryV1(data[8:], b)
 	}
@@ -353,12 +351,10 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 	return nil
 }
 
-// Reset resets the Sketch to its initial state to allow for reuse.
+// Reset will clear the internal state and restore it current mode to its initial state.
 func (sk *Sketch) Reset() {
-	if sk.sparse() {
-		sk.tmpSet = makeSet(0)
-		sk.sparseList = newCompressedList(0)
-		return
-	}
+	sk.tmpSet.clear()
+	sk.sparseList.clear()
 	clear(sk.regs)
+	sk.current = sk.initial
 }

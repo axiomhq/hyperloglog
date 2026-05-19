@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -366,9 +367,7 @@ func TestHLL_Marshal_Unmarshal_Dense(t *testing.T) {
 	var res Sketch
 	require.NoError(t, res.UnmarshalBinary(data))
 
-	// reflect.DeepEqual will always return false when comparing non-nil
-	// functions, so we'll set them to nil.
-	require.True(t, reflect.DeepEqual(&res, sk), "got %v, wanted %v", spew.Sdump(&res), spew.Sdump(sk))
+	assert.Equal(t, sk, &res, "Must match the expected value")
 }
 
 // Tests that a sketch can be serialised / unserialised and keep an accurate
@@ -938,13 +937,23 @@ func Benchmark_MarshalBinary(b *testing.B) {
 }
 
 func TestReset(t *testing.T) {
-	t.Parallel()
+	sk := NewTestSketch(16)
 
-	sk := New16()
-	sk.Insert([]byte("foo"))
-	sk.Insert([]byte("bar"))
-	require.NotEqual(t, uint64(0), sk.Estimate())
+	allocs := testing.AllocsPerRun(1000, func() {
+		sk.Reset()
+	})
 
-	sk.Reset()
-	require.Equal(t, uint64(0), sk.Estimate())
+	assert.Zero(t, allocs, "Must report an alloc total of zero")
+}
+
+func BenchmarkReset(b *testing.B) {
+	sk := NewTestSketch(16)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for range b.N {
+		sk.Reset()
+	}
+
+	_ = sk
 }
