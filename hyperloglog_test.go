@@ -24,13 +24,6 @@ func estimateError(got, exp uint64) float64 {
 	return float64(delta) / float64(exp)
 }
 
-func nopHash(buf []byte) uint64 {
-	if len(buf) != 8 {
-		panic(fmt.Sprintf("unexpected size buffer: %d", len(buf)))
-	}
-	return binary.BigEndian.Uint64(buf)
-}
-
 func TestHLL_CardinalityHashed(t *testing.T) {
 	hlltc, err := NewSketch(14, true)
 	require.NoError(t, err)
@@ -64,64 +57,52 @@ func toByte(v uint64) []byte {
 }
 
 func TestHLL_Add_NoSparse(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := New16NoSparse()
 
-	sk.Insert(toByte(0x00010fffffffffff))
+	sk.InsertHash(0x00010fffffffffff)
 	n := sk.regs[1]
 	require.EqualValues(t, 5, n)
 
-	sk.Insert(toByte(0x0002ffffffffffff))
+	sk.InsertHash(0x0002ffffffffffff)
 	n = sk.regs[2]
 	require.EqualValues(t, 1, n)
 
-	sk.Insert(toByte(0x0003000000000000))
+	sk.InsertHash(0x0003000000000000)
 	n = sk.regs[3]
 	require.EqualValues(t, 49, n)
 
-	sk.Insert(toByte(0x0003000000000001))
+	sk.InsertHash(0x0003000000000001)
 	n = sk.regs[3]
 	require.EqualValues(t, 49, n)
 
-	sk.Insert(toByte(0xff03700000000000))
+	sk.InsertHash(0xff03700000000000)
 	n = sk.regs[0xff03]
 	require.EqualValues(t, 2, n)
 
-	sk.Insert(toByte(0xff03080000000000))
+	sk.InsertHash(0xff03080000000000)
 	n = sk.regs[0xff03]
 	require.EqualValues(t, 5, n)
 }
 
 func TestHLL_Precision_NoSparse(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk, _ := NewSketch(4, false)
 
-	sk.Insert(toByte(0x1fffffffffffffff))
+	sk.InsertHash(0x1fffffffffffffff)
 	n := sk.regs[1]
 	require.EqualValues(t, 1, n)
 
-	sk.Insert(toByte(0xffffffffffffffff))
+	sk.InsertHash(0xffffffffffffffff)
 	n = sk.regs[0xf]
 	require.EqualValues(t, 1, n)
 
-	sk.Insert(toByte(0x00ffffffffffffff))
+	sk.InsertHash(0x00ffffffffffffff)
 	n = sk.regs[0]
 	require.EqualValues(t, 5, n)
 }
 
 func TestHLL_toNormal(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(16)
-	sk.Insert(toByte(0x00010fffffffffff))
+	sk.InsertHash(0x00010fffffffffff)
 	sk.toNormal()
 	c := sk.Estimate()
 	require.EqualValues(t, 1, c)
@@ -129,12 +110,12 @@ func TestHLL_toNormal(t *testing.T) {
 	require.False(t, sk.sparse(), "toNormal should convert to normal")
 
 	sk = NewTestSketch(16)
-	sk.Insert(toByte(0x00010fffffffffff))
-	sk.Insert(toByte(0x0002ffffffffffff))
-	sk.Insert(toByte(0x0003000000000000))
-	sk.Insert(toByte(0x0003000000000001))
-	sk.Insert(toByte(0xff03700000000000))
-	sk.Insert(toByte(0xff03080000000000))
+	sk.InsertHash(0x00010fffffffffff)
+	sk.InsertHash(0x0002ffffffffffff)
+	sk.InsertHash(0x0003000000000000)
+	sk.InsertHash(0x0003000000000001)
+	sk.InsertHash(0xff03700000000000)
+	sk.InsertHash(0xff03080000000000)
 	sk.mergeSparse()
 	sk.toNormal()
 
@@ -149,10 +130,6 @@ func TestHLL_toNormal(t *testing.T) {
 }
 
 func TestHLL_Cardinality(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
@@ -180,10 +157,6 @@ func TestHLL_Cardinality(t *testing.T) {
 }
 
 func TestHLL_Merge_Error(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(16)
 	sk2 := NewTestSketch(10)
 
@@ -192,10 +165,6 @@ func TestHLL_Merge_Error(t *testing.T) {
 }
 
 func TestHLL_Merge_Sparse(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(16)
 	sk.Insert(toByte(0x00010fffffffffff))
 	sk.Insert(toByte(0x00020fffffffffff))
@@ -279,10 +248,6 @@ func TestHLL_Merge_Complex(t *testing.T) {
 }
 
 func TestHLL_EncodeDecode(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(8)
 	i, r := decodeHash(encodeHash(0xffffff8000000000, sk.p, pp), sk.p, pp)
 	require.EqualValues(t, 0xff, i)
@@ -547,10 +512,6 @@ func TestHLL_Clone(t *testing.T) {
 }
 
 func TestHLL_Add_Hash(t *testing.T) {
-	hash = nopHash
-	defer func() {
-		hash = hashFunc
-	}()
 	sk := NewTestSketch(16)
 
 	n := sk.Estimate()
