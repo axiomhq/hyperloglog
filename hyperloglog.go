@@ -16,8 +16,12 @@ const (
 )
 
 type Sketch struct {
-	p          uint8
-	m          uint32
+	p uint8
+	m uint32
+	// s says whether the sketch was created as sparse or not
+	// sparse func tells current sketch state sparse or not
+	s bool
+
 	alpha      float64
 	tmpSet     set
 	sparseList *compressedList
@@ -50,8 +54,10 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		m:     m,
-		p:     precision,
+		m: m,
+		p: precision,
+		s: sparse,
+
 		alpha: alpha(float64(m)),
 	}
 	if sparse {
@@ -78,6 +84,13 @@ func (sk *Sketch) Reset() {
 	if sk.sparse() {
 		sk.tmpSet.reset()
 		sk.sparseList.reset()
+		return
+	}
+
+	if sk.s {
+		sk.tmpSet = makeSet(0)
+		sk.sparseList = getCompressedList(0)
+		sk.regs = nil
 		return
 	}
 
