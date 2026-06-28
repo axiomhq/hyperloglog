@@ -18,9 +18,9 @@ const (
 type Sketch struct {
 	p uint8
 	m uint32
-	// s says whether the sketch was created as sparse or not
-	// sparse func tells current sketch state sparse or not
-	s bool
+	// createdSparse records whether the sketch was originally created with sparse mode.
+	// Use sparse() to check current state.
+	createdSparse bool
 
 	alpha      float64
 	tmpSet     set
@@ -56,7 +56,7 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	s := &Sketch{
 		m: m,
 		p: precision,
-		s: sparse,
+		createdSparse: sparse,
 
 		alpha: alpha(float64(m)),
 	}
@@ -87,7 +87,7 @@ func (sk *Sketch) Reset() {
 		return
 	}
 
-	if sk.s {
+	if sk.createdSparse {
 		sk.tmpSet = makeSet(0)
 		sk.sparseList = getCompressedList(0)
 		sk.regs = nil
