@@ -102,7 +102,7 @@ func (sk *Sketch) maybeToNormal() {
 		sk.mergeSparse()
 
 		m := sk.m
-		if m > 8096 {
+		if m > 8192 {
 			m -= m / 10
 		}
 
@@ -225,7 +225,7 @@ func getCompressedList(requestedCapacity int) *compressedList {
 		pool = compressedListPools[3]
 	} else if capacity = 4096; requestedCapacity < capacity {
 		pool = compressedListPools[4]
-	} else if capacity = 8196; requestedCapacity < capacity {
+	} else if capacity = 8192; requestedCapacity < capacity {
 		pool = compressedListPools[5]
 	} else if capacity = 16384; requestedCapacity < capacity {
 		pool = compressedListPools[6]
@@ -258,7 +258,7 @@ func putCompressedList(c *compressedList) {
 		compressedListPools[3].Put(c)
 	} else if capacity < 4096 {
 		compressedListPools[4].Put(c)
-	} else if capacity < 8196 {
+	} else if capacity < 8192 {
 		compressedListPools[5].Put(c)
 	} else if capacity < 16384 {
 		compressedListPools[6].Put(c)
@@ -309,7 +309,7 @@ func (sk *Sketch) mergeSparse() {
 	putCompressedList(sk.sparseList)
 
 	sk.sparseList = newList
-	sk.tmpSet.m.Clear()
+	sk.tmpSet.reset()
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
