@@ -15,7 +15,6 @@ const (
 )
 
 type Sketch struct {
-	initial    state
 	current    state
 	p          uint8
 	m          uint32
@@ -51,7 +50,6 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		initial: newState(sparse),
 		current: newState(sparse),
 		m:       m,
 		p:       precision,
@@ -302,6 +300,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		}
 		*sk = *newh
 	}
+	sk.current = newState(sparse)
 
 	// h is now initialised with the correct p. We just need to fill the
 	// rest of the details out.
@@ -354,16 +353,12 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 	return nil
 }
 
-// Reset will clear the internal state and restore it current mode to its initial state.
+// Reset clears the sketch while preserving its current representation and
+// allocated backing storage.
 func (sk *Sketch) Reset() {
-	// In order to perserve users performance/behaviour expectations,
-	// this will only clear the sparse states if it was initialized as sparse.
-	// When the sketch is initialised as dense, the insert operation will not use the sparse states,
-	// so it makes sense to to avoid clearing them in that scenario.
-	if sk.initial.isSparse() {
+	if sk.current.isSparse() {
 		sk.tmpSet.clear()
 		sk.sparseList.clear()
 	}
 	clear(sk.regs)
-	sk.current = sk.initial
 }

@@ -963,6 +963,44 @@ func TestReset(t *testing.T) {
 	}
 }
 
+func TestResetPreservesPromotedRepresentation(t *testing.T) {
+	sk := New16()
+	for item := 0; sk.sparse(); item++ {
+		sk.Insert([]byte(fmt.Sprintf("promote_%d", item)))
+	}
+
+	sk.Reset()
+	require.False(t, sk.sparse())
+	require.Zero(t, sk.Estimate())
+
+	expect := New16NoSparse()
+	for item := 0; item < 1000; item++ {
+		value := []byte(fmt.Sprintf("reuse_%d", item))
+		sk.Insert(value)
+		expect.Insert(value)
+	}
+	require.Equal(t, expect.Estimate(), sk.Estimate())
+
+	sk.Reset()
+	require.False(t, sk.sparse())
+	require.Zero(t, sk.Estimate())
+}
+
+func TestUnmarshalBinary_DenseIntoFreshSparseSketch(t *testing.T) {
+	src := New16NoSparse()
+	src.Insert([]byte("foo"))
+	src.Insert([]byte("bar"))
+
+	data, err := src.MarshalBinary()
+	require.NoError(t, err)
+
+	dst := New16()
+	require.NoError(t, dst.UnmarshalBinary(data))
+
+	require.NotZero(t, src.Estimate())
+	require.Equal(t, src.Estimate(), dst.Estimate())
+}
+
 func BenchmarkReset(b *testing.B) {
 	b.Run("sketch-16/sparse-initialized", func(b *testing.B) {
 		sk := New16()
@@ -986,13 +1024,21 @@ func BenchmarkReset(b *testing.B) {
 
 	b.Run("sketch-16/sparse-promoted", func(b *testing.B) {
 		sk := New16()
-		for item := range 1_000_000 {
-			sk.InsertHash(uint64(item))
+		for item := 0; sk.sparse(); item++ {
+			sk.Insert([]byte(fmt.Sprintf("promote_%d", item)))
+		}
+		sk.Reset()
+		hashes := make([]uint64, 1000)
+		for item := range hashes {
+			hashes[item] = hash([]byte(fmt.Sprintf("reuse_%d", item)))
 		}
 
 		b.ResetTimer()
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
+			for _, item := range hashes {
+				sk.InsertHash(item)
+			}
 			sk.Reset()
 		}
 		_ = sk
