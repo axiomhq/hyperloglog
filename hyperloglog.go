@@ -100,13 +100,7 @@ func (sk *Sketch) Reset() {
 func (sk *Sketch) maybeToNormal() {
 	if uint32(sk.tmpSet.Len())*100 > sk.m {
 		sk.mergeSparse()
-
-		m := sk.m
-		if m > 8192 {
-			m -= m / 10
-		}
-
-		if uint32(sk.sparseList.Len()) > m {
+		if uint32(sk.sparseList.Len()) > sk.m {
 			sk.toNormal()
 		}
 	}
