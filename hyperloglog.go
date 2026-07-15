@@ -54,8 +54,8 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		m: m,
-		p: precision,
+		m:             m,
+		p:             precision,
 		createdSparse: sparse,
 
 		alpha: alpha(float64(m)),
@@ -194,71 +194,6 @@ func (sk *Sketch) Estimate() uint64 {
 
 	est := sk.alpha * m * (m - ez) / (sum + beta(sk.p, ez))
 	return uint64(est + 0.5)
-}
-
-var compressedListPools = newCompressedListPools()
-
-func newCompressedListPools() [8]*sync.Pool {
-	pools := [8]*sync.Pool{}
-	for i := 0; i < len(pools); i++ {
-		pools[i] = &sync.Pool{}
-	}
-	return pools
-}
-
-func getCompressedList(requestedCapacity int) *compressedList {
-	var pool *sync.Pool
-	var capacity int
-	if capacity = 256; requestedCapacity < capacity {
-		pool = compressedListPools[0]
-	} else if capacity = 512; requestedCapacity < capacity {
-		pool = compressedListPools[1]
-	} else if capacity = 1024; requestedCapacity < capacity {
-		pool = compressedListPools[2]
-	} else if capacity = 2048; requestedCapacity < capacity {
-		pool = compressedListPools[3]
-	} else if capacity = 4096; requestedCapacity < capacity {
-		pool = compressedListPools[4]
-	} else if capacity = 8192; requestedCapacity < capacity {
-		pool = compressedListPools[5]
-	} else if capacity = 16384; requestedCapacity < capacity {
-		pool = compressedListPools[6]
-	} else {
-		capacity = requestedCapacity
-		pool = compressedListPools[7]
-	}
-
-	c := pool.Get()
-	if c == nil {
-		return newCompressedList(capacity - 1)
-	}
-
-	c1 := c.(*compressedList)
-	c1.b = slices.Grow(c1.b, capacity-1)
-	return c1
-}
-
-func putCompressedList(c *compressedList) {
-	c.reset()
-	capacity := cap(c.b)
-
-	if capacity < 256 {
-		compressedListPools[0].Put(c)
-	} else if capacity < 512 {
-		compressedListPools[1].Put(c)
-	} else if capacity < 1024 {
-		compressedListPools[2].Put(c)
-	} else if capacity < 2048 {
-		compressedListPools[3].Put(c)
-	} else if capacity < 4096 {
-		compressedListPools[4].Put(c)
-	} else if capacity < 8192 {
-		compressedListPools[5].Put(c)
-	} else if capacity < 16384 {
-		compressedListPools[6].Put(c)
-	} else {
-		compressedListPools[7].Put(c)
-	}
 }
 
 func (sk *Sketch) mergeSparse() {
@@ -443,4 +378,69 @@ func (sk *Sketch) unmarshalBinaryV1(data []byte, b uint8) error {
 func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 	sk.regs = data[8:]
 	return nil
+}
+
+var compressedListPools = newCompressedListPools()
+
+func newCompressedListPools() [8]*sync.Pool {
+	pools := [8]*sync.Pool{}
+	for i := 0; i < len(pools); i++ {
+		pools[i] = &sync.Pool{}
+	}
+	return pools
+}
+
+func getCompressedList(requestedCapacity int) *compressedList {
+	var pool *sync.Pool
+	var capacity int
+	if capacity = 256; requestedCapacity < capacity {
+		pool = compressedListPools[0]
+	} else if capacity = 512; requestedCapacity < capacity {
+		pool = compressedListPools[1]
+	} else if capacity = 1024; requestedCapacity < capacity {
+		pool = compressedListPools[2]
+	} else if capacity = 2048; requestedCapacity < capacity {
+		pool = compressedListPools[3]
+	} else if capacity = 4096; requestedCapacity < capacity {
+		pool = compressedListPools[4]
+	} else if capacity = 8192; requestedCapacity < capacity {
+		pool = compressedListPools[5]
+	} else if capacity = 16384; requestedCapacity < capacity {
+		pool = compressedListPools[6]
+	} else {
+		capacity = requestedCapacity
+		pool = compressedListPools[7]
+	}
+
+	c := pool.Get()
+	if c == nil {
+		return newCompressedList(capacity - 1)
+	}
+
+	c1 := c.(*compressedList)
+	c1.b = slices.Grow(c1.b, capacity-1)
+	return c1
+}
+
+func putCompressedList(c *compressedList) {
+	c.reset()
+	capacity := cap(c.b)
+
+	if capacity < 256 {
+		compressedListPools[0].Put(c)
+	} else if capacity < 512 {
+		compressedListPools[1].Put(c)
+	} else if capacity < 1024 {
+		compressedListPools[2].Put(c)
+	} else if capacity < 2048 {
+		compressedListPools[3].Put(c)
+	} else if capacity < 4096 {
+		compressedListPools[4].Put(c)
+	} else if capacity < 8192 {
+		compressedListPools[5].Put(c)
+	} else if capacity < 16384 {
+		compressedListPools[6].Put(c)
+	} else {
+		compressedListPools[7].Put(c)
+	}
 }
