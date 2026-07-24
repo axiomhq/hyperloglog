@@ -17,7 +17,10 @@ const (
 )
 
 // Sketch is a HyperLogLog estimator. Do not copy one after first use; use
-// Clone. Its zero value is empty and initializes on insertion or merge.
+// Clone. Its zero value is empty and initializes on insertion or merge: a zero
+// value first used with Insert or InsertHash takes New's configuration
+// (precision 14, sparse), while a zero value first used with Merge adopts the
+// other sketch's precision and representation.
 type Sketch struct {
 	p          uint8
 	m          uint32
@@ -204,7 +207,15 @@ func (sk *Sketch) Estimate() uint64 {
 	}
 	if sk.sparse() {
 		sk.mergeSparse()
-		return uint64(linearCount(mp, mp-sk.sparseList.count))
+		// mergeSparse drains tmpSet into sparseList without consulting
+		// maybeToNormal, whose threshold only ever fires on insertion. Without
+		// this check a caller alternating small batches of Insert with
+		// Estimate keeps the sparse list growing past m forever.
+		if uint32(sk.sparseList.Len()) > sk.m {
+			sk.toNormal()
+		} else {
+			return uint64(linearCount(mp, mp-min(sk.sparseList.count, mp-1)))
+		}
 	}
 
 	sum, ez := sumAndZeros(sk.regs)
@@ -259,6 +270,9 @@ func (sk *Sketch) mergeSparse() {
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
 //
+// An uninitialized (zero value) Sketch has no encoding: its precision is 0, so
+// MarshalBinary returns an error wrapping ErrorInvalidPrecision.
+//
 // When the result will be appended to another buffer, consider using
 // AppendBinary to avoid additional allocations and copying.
 func (sk *Sketch) MarshalBinary() (data []byte, err error) {
@@ -266,6 +280,11 @@ func (sk *Sketch) MarshalBinary() (data []byte, err error) {
 }
 
 // AppendBinary implements the encoding.BinaryAppender interface.
+//
+// An uninitialized (zero value) Sketch has no encoding: its precision is 0, so
+// AppendBinary returns an error wrapping ErrorInvalidPrecision and leaves the
+// caller's buffer unmodified.
+//
 // UnmarshalBinary requires the encoding to be the entire buffer it is handed
 // and rejects trailing bytes with ErrorInvalidData. A caller appending a Sketch
 // into a larger buffer must frame the record itself; the number of bytes
@@ -332,7 +351,8 @@ var ErrorTooShort = errors.New("too short binary")
 var ErrorInvalidVersion = errors.New("unknown serialization version")
 
 // ErrorInvalidPrecision is returned unwrapped by NewSketch, and wrapped by
-// UnmarshalBinary, when the precision is outside the supported range.
+// UnmarshalBinary, MarshalBinary and AppendBinary, when the precision is
+// outside the supported range.
 var ErrorInvalidPrecision = errors.New("p has to be >= 4 and <= 18")
 
 // ErrorInvalidData is returned by UnmarshalBinary when the binary is long
@@ -362,6 +382,10 @@ var ErrorPrecisionMismatch = errors.New("precisions must be equal")
 // value, a uint32 big endian size sz, and sz bytes of a delta varint stream
 // whose final byte must have its high bit clear. The tmp set keys may appear in
 // any order.
+//
+// Version 2 pins the hash function to MetroHash64 with seed 1337 and the sparse
+// precision pp to 25. Sparse keys and dense registers are only meaningful under
+// those two constants, so changing either requires a new version byte.
 //
 // The version 2 dense payload is a uint32 big endian register count, which
 // must equal m = 1<<p, followed by m register bytes. In the version 1 dense
