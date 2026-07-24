@@ -1104,9 +1104,12 @@ func benchmarkAdd(b *testing.B, sk *Sketch, n int) {
 		blobs = benchdata[n]
 	}
 
+	p, sparse := sk.p, sk.sparse()
+
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		*sk = *newSketchNoError(p, sparse)
 		for j := 0; j < len(blobs); j++ {
 			sk.Insert(blobs[j])
 		}
@@ -1175,14 +1178,21 @@ func randStr(n int) string {
 	return fmt.Sprintf("a%d %d", i, n)
 }
 
-func benchmark(precision uint8, n int) {
+func benchmark(b *testing.B, precision uint8) {
+	n := b.N
 	hll, _ := NewSketch(precision, true)
 
-	for i := 0; i < n; i++ {
-		s := []byte(randStr(i))
+	values := make([][]byte, n)
+	for i := range values {
+		values[i] = []byte(randStr(i))
+	}
+
+	b.ResetTimer()
+	for _, s := range values {
 		hll.Insert(s)
 		hll.Insert(s)
 	}
+	b.StopTimer()
 
 	e := hll.Estimate()
 	var percentErr = func(est uint64) float64 {
@@ -1195,32 +1205,32 @@ func benchmark(precision uint8, n int) {
 
 func BenchmarkHll4(b *testing.B) {
 	fmt.Println("")
-	benchmark(4, b.N)
+	benchmark(b, 4)
 }
 
 func BenchmarkHll6(b *testing.B) {
 	fmt.Println("")
-	benchmark(6, b.N)
+	benchmark(b, 6)
 }
 
 func BenchmarkHll8(b *testing.B) {
 	fmt.Println("")
-	benchmark(8, b.N)
+	benchmark(b, 8)
 }
 
 func BenchmarkHll10(b *testing.B) {
 	fmt.Println("")
-	benchmark(10, b.N)
+	benchmark(b, 10)
 }
 
 func BenchmarkHll14(b *testing.B) {
 	fmt.Println("")
-	benchmark(14, b.N)
+	benchmark(b, 14)
 }
 
 func BenchmarkHll16(b *testing.B) {
 	fmt.Println("")
-	benchmark(16, b.N)
+	benchmark(b, 16)
 }
 
 func BenchmarkZipf(b *testing.B) {
