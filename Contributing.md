@@ -17,8 +17,12 @@ When reporting a bug, please try and provide as much context as possible such as
 ```
 git clone https://github.com/axiomhq/hyperloglog.git
 cd hyperloglog
-cd demo 
-go run hyperloglog_demo.go 
+
+# Run tests
+go test ./...
+
+# Run examples (see output demonstrating library usage)
+go test -run Example -v
 ```
 
 ## Submitting Modifications
