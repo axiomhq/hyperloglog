@@ -1,3 +1,5 @@
+// Package hyperloglog implements the HyperLogLog cardinality estimator with
+// sparse and dense representations.
 package hyperloglog
 
 import (
@@ -315,9 +317,7 @@ func (sk *Sketch) AppendBinary(data []byte) ([]byte, error) {
 	)
 
 	// Marshal each element in the list.
-	for _, v := range sk.regs {
-		data = append(data, byte(v))
-	}
+	data = append(data, sk.regs...)
 
 	return data, nil
 }
