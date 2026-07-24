@@ -3,6 +3,7 @@ package hyperloglog
 import (
 	crand "crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -289,7 +290,7 @@ func TestHLL_Marshal_Unmarshal_Sparse(t *testing.T) {
 
 	// Add a bunch of values to the sparse representation.
 	for i := 0; i < 10; i++ {
-		sk.sparseList.Append(uint32(rand.Int()))
+		sk.sparseList.Append(uint32(i+1) << 1)
 	}
 
 	data, err := sk.MarshalBinary()
@@ -319,7 +320,7 @@ func TestHLL_Marshal_Unmarshal_Dense(t *testing.T) {
 
 	// Add a bunch of values to the dense representation.
 	for i := uint32(0); i < 10; i++ {
-		sk.regs[i] = uint8(rand.Int())
+		sk.regs[i] = uint8(rand.Intn(int(64 - sk.p + 2)))
 	}
 
 	data, err := sk.MarshalBinary()
@@ -392,12 +393,12 @@ func TestHLL_Marshal_Unmarshal_Count(t *testing.T) {
 	require.LessOrEqual(t, math.Abs(float64(int(gotC)-len(count))), float64(epsilon), "error was %v for estimation %d and true cardinality %d", math.Abs(float64(int(gotC)-len(count))), gotC, len(count))
 }
 
-// Tests that a sketch will be used in Unmarshal if it is unused
-func TestHLL_Marshal_Unmarshal_Reuse(t *testing.T) {
+// Tests that Unmarshal always replaces the receiver, used or not.
+func TestHLL_Unmarshal_ReplacesReceiver(t *testing.T) {
 	sk, _ := NewSketch(4, true)
 	// Add a bunch of values to the sparse representation.
 	for i := 0; i < 10; i++ {
-		sk.sparseList.Append(uint32(rand.Int()))
+		sk.sparseList.Append(uint32(i+1) << 1)
 	}
 	data, err := sk.MarshalBinary()
 	require.NoError(t, err)
@@ -407,32 +408,383 @@ func TestHLL_Marshal_Unmarshal_Reuse(t *testing.T) {
 	res.m = 1
 	require.NoError(t, res.UnmarshalBinary(data))
 
-	// Compare the "m" to make sure it's the same
-	require.EqualValues(t, 1, res.m, "UnmarshalBinary created a newSketch Sketch")
+	// The tampered receiver is discarded, so "m" matches the encoded precision
+	require.EqualValues(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
 
-	// If we re-use the same sketch, newSketch should be called
+	// The same holds when the receiver was already filled in
 	require.NoError(t, res.UnmarshalBinary(data))
+	require.EqualValues(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
+}
 
-	// Compare the "m" to make sure it was changed
-	require.NotEqual(t, 1, res.m, "UnmarshalBinary did not create a newSketch Sketch")
+// Tests that a failed Unmarshal leaves the receiver alone.
+func TestHLL_Unmarshal_ReceiverUnchangedOnError(t *testing.T) {
+	sk, err := NewSketch(14, true)
+	require.NoError(t, err)
+	for i := 0; i < 20; i++ {
+		sk.InsertHash(rand.Uint64())
+	}
+
+	data, err := sk.MarshalBinary()
+	require.NoError(t, err)
+
+	res := &Sketch{}
+	require.NoError(t, res.UnmarshalBinary(data))
+	want := res.Estimate()
+
+	err = res.UnmarshalBinary(data[:len(data)-3])
+	require.ErrorIs(t, err, ErrorTooShort)
+	require.EqualValues(t, want, res.Estimate())
+
+	// The receiver is not merely unchanged, it is still usable.
+	res.InsertHash(rand.Uint64())
+	require.GreaterOrEqual(t, res.Estimate(), want)
 }
 
 func TestHLL_Unmarshal_ErrorTooShort(t *testing.T) {
-	require.EqualValues(t, ErrorTooShort, (&Sketch{}).UnmarshalBinary(nil), "UnmarshalBinary(nil) should fail with ErrorTooShort")
+	require.ErrorIs(t, (&Sketch{}).UnmarshalBinary(nil), ErrorTooShort, "UnmarshalBinary(nil) should fail with ErrorTooShort")
 
 	b := []byte{
 		// precision:14, sparse:true, tmpSet:empty,
 		// sparseList:{count:1, last:0, sz:1, ...}
 		0x01, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x01, 0x7f,
+		0x00, 0x00, 0x00, 0x01, 0x00,
 	}
 	require.NoError(t, (&Sketch{}).UnmarshalBinary(b))
 	for i := 0; i < len(b)-1; i++ {
 		sk := &Sketch{}
 		err := sk.UnmarshalBinary(b[0:i])
-		require.EqualValues(t, ErrorTooShort, err, "should fail for incomplete bytes: i=%d", i)
+		require.ErrorIs(t, err, ErrorTooShort, "should fail for incomplete bytes: i=%d", i)
 	}
+
+	require.ErrorIs(t, (&Sketch{}).UnmarshalBinary(b[:4]), ErrorTooShort)
+}
+
+var unmarshalMalformedTests = []struct {
+	name    string
+	blob    []byte
+	wantErr error
+}{
+	{
+		name:    "dense unknown version",
+		blob:    []byte{0x63, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00},
+		wantErr: ErrorInvalidVersion,
+	},
+	{
+		name:    "sparse unknown version",
+		blob:    []byte{0x63, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorInvalidVersion,
+	},
+	{
+		name:    "precision too small",
+		blob:    []byte{0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorInvalidPrecision,
+	},
+	{
+		name:    "precision too large",
+		blob:    []byte{0x02, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorInvalidPrecision,
+	},
+	{
+		name:    "tmp set count exceeds input",
+		blob:    []byte{0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorTooShort,
+	},
+	{
+		name:    "tmp set count overflows",
+		blob:    []byte{0x02, 0x0e, 0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorTooShort,
+	},
+	{
+		name:    "dense register count does not match m",
+		blob:    []byte{0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name:    "dense registers truncated",
+		blob:    []byte{0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x01, 0x02, 0x03},
+		wantErr: ErrorTooShort,
+	},
+	{
+		name:    "v1 dense registers truncated",
+		blob:    []byte{0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11},
+		wantErr: ErrorTooShort,
+	},
+	{
+		name: "compressed list size exceeds input",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x7f, 0xff, 0xff, 0xff,
+		},
+		wantErr: ErrorTooShort,
+	},
+	{
+		name: "compressed list varint does not terminate",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x80,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "v1 sparse control",
+		blob: []byte{
+			0x01, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+		},
+		wantErr: nil,
+	},
+	{
+		name: "compressed list count too large",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list count past the sparse limit",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list count exceeds decoded entries",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list zero delta after the first entry",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02,
+			0x00, 0x00, 0x00, 0x03, 0x02, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list delta wraps uint32",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+			0x00, 0x00, 0x00, 0x06, 0xd1, 0xff, 0xff, 0xff,
+			0x0f, 0x32,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list varint longer than five bytes",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02,
+			0x00, 0x00, 0x00, 0x07, 0x82, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list varint does not fit in 32 bits",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x05, 0x80, 0x80, 0x80, 0x80,
+			0x10,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list varint not minimally encoded",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x02, 0x80, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list first delta zero",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+		},
+		wantErr: nil,
+	},
+	{
+		name: "sparse payload with trailing bytes",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "v2 dense payload with trailing bytes",
+		blob: []byte{
+			0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "v1 dense payload with trailing bytes",
+		blob: []byte{
+			0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "compressed list last does not match the deltas",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x05,
+			0x00, 0x00, 0x00, 0x01, 0x02,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "sparse list key out of range",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01, 0xff, 0xff, 0xff, 0xff,
+			0x00, 0x00, 0x00, 0x05, 0xff, 0xff, 0xff, 0xff,
+			0x0f,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "tmp set key out of range",
+		blob: []byte{
+			0x02, 0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+			0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name:    "unknown sparse flag",
+		blob:    []byte{0x02, 0x0e, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name:    "v2 with a non zero bias",
+		blob:    []byte{0x02, 0x0e, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "v1 dense bias out of range",
+		blob: []byte{
+			0x01, 0x04, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+	{
+		name: "dense register out of range",
+		blob: []byte{
+			0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+			0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+		wantErr: ErrorInvalidData,
+	},
+}
+
+func TestHLL_Unmarshal_Malformed(t *testing.T) {
+	for _, tt := range unmarshalMalformedTests {
+		t.Run(tt.name, func(t *testing.T) {
+			sk := &Sketch{}
+			var err error
+			require.NotPanics(t, func() { err = sk.UnmarshalBinary(tt.blob) })
+			if tt.wantErr == nil {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorIs(t, err, tt.wantErr)
+		})
+	}
+}
+
+func FuzzUnmarshalBinary(f *testing.F) {
+	for _, precision := range []uint8{4, 14} {
+		for _, sparse := range []bool{true, false} {
+			sk, err := NewSketch(precision, sparse)
+			require.NoError(f, err)
+			for i := 0; i < 10; i++ {
+				sk.InsertHash(rand.Uint64())
+			}
+			data, err := sk.MarshalBinary()
+			require.NoError(f, err)
+			f.Add(data)
+		}
+	}
+	for _, tt := range unmarshalMalformedTests {
+		f.Add(tt.blob)
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		sk, err := NewSketch(14, true)
+		require.NoError(t, err)
+
+		if err := sk.UnmarshalBinary(data); err != nil {
+			require.True(t,
+				errors.Is(err, ErrorTooShort) ||
+					errors.Is(err, ErrorInvalidData) ||
+					errors.Is(err, ErrorInvalidVersion) ||
+					errors.Is(err, ErrorInvalidPrecision),
+				"unexpected error: %v", err)
+			// A rejected blob leaves the receiver as it was, and usable.
+			sk.InsertHash(rand.Uint64())
+			sk.Estimate()
+			return
+		}
+
+		sk.Estimate()
+		require.NoError(t, sk.Merge(sk.Clone()))
+
+		out, err := sk.MarshalBinary()
+		require.NoError(t, err)
+		var res Sketch
+		require.NoError(t, res.UnmarshalBinary(out))
+		require.EqualValues(t, sk.Estimate(), res.Estimate())
+	})
+}
+
+func TestHLL_Unmarshal_V2_CopiesInput(t *testing.T) {
+	sk, err := NewSketch(16, false)
+	require.NoError(t, err)
+	for i := 0; i < 1000; i++ {
+		sk.InsertHash(uint64(rand.Int()))
+	}
+
+	data, err := sk.MarshalBinary()
+	require.NoError(t, err)
+
+	res := &Sketch{}
+	require.NoError(t, res.UnmarshalBinary(data))
+	want := res.Estimate()
+
+	for i := range data {
+		data[i] = 0xff
+	}
+	require.EqualValues(t, want, res.Estimate())
 }
 
 func TestHLL_AppendBinary(t *testing.T) {
@@ -485,6 +837,89 @@ func Benchmark_HLL_Marshal(b *testing.B) {
 	}
 	run(16, true)
 	run(16, false)
+}
+
+func Benchmark_UnmarshalBinary(b *testing.B) {
+	run := func(name string, sparse bool) {
+		b.Run(name, func(b *testing.B) {
+			sk, _ := NewSketch(16, sparse)
+			for i := 0; i < 1000; i++ {
+				sk.InsertHash(rand.Uint64())
+			}
+			data, err := sk.MarshalBinary()
+			require.NoError(b, err)
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				sk := &Sketch{}
+				_ = sk.UnmarshalBinary(data)
+			}
+		})
+	}
+	run("sparse", true)
+	run("dense", false)
+
+	b.Run("sparse-large", func(b *testing.B) {
+		sk, _ := NewSketch(16, true)
+		for sk.sparse() && sk.sparseList.Len() <= int(3*(uint32(1)<<16)/4) {
+			sk.InsertHash(rand.Uint64())
+		}
+		require.True(b, sk.sparse())
+		data, err := sk.MarshalBinary()
+		require.NoError(b, err)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			sk := &Sketch{}
+			_ = sk.UnmarshalBinary(data)
+		}
+	})
+}
+
+// The compressed list decoder rejects a zero delta after the first entry, so
+// mergeSparse has to emit every key at most once even when the tmp set and the
+// sparse list overlap.
+func TestHLL_MergeSparse_NoZeroDeltas(t *testing.T) {
+	sk, err := NewSketch(14, true)
+	require.NoError(t, err)
+
+	keys := make([]uint32, 100)
+	for i := range keys {
+		keys[i] = encodeHash(rand.Uint64(), sk.p, pp)
+		sk.tmpSet.add(keys[i])
+	}
+	sk.mergeSparse()
+
+	// Overlap the tmp set with the merged list, and add some fresh keys.
+	for i := 0; i < len(keys); i += 2 {
+		sk.tmpSet.add(keys[i])
+	}
+	for i := 0; i < 50; i++ {
+		sk.tmpSet.add(encodeHash(rand.Uint64(), sk.p, pp))
+	}
+	sk.mergeSparse()
+
+	var entries uint32
+	for i := 0; i < len(sk.sparseList.b); {
+		x, next, ok := sk.sparseList.b.decode(i)
+		require.True(t, ok, "varint at offset %d is malformed", i)
+		i = next
+		if entries > 0 {
+			require.NotZero(t, x, "delta %d is 0", entries)
+		}
+		entries++
+	}
+	require.EqualValues(t, sk.sparseList.count, entries)
+
+	// A duplicate or out of order key would encode as a wrapped delta that
+	// UnmarshalBinary rejects, so the merged list has to survive a round trip.
+	data, err := sk.MarshalBinary()
+	require.NoError(t, err)
+	var res Sketch
+	require.NoError(t, res.UnmarshalBinary(data))
+	require.EqualValues(t, sk.Estimate(), res.Estimate())
 }
 
 func TestHLL_Clone(t *testing.T) {
