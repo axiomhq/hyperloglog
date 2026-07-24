@@ -40,13 +40,13 @@ func TestHLL_CardinalityHashed(t *testing.T) {
 		if len(unique)%step == 0 {
 			step *= 5
 			exact := uint64(len(unique))
-			res := uint64(hlltc.Estimate())
+			res := hlltc.Estimate()
 			ratio := 100 * estimateError(res, exact)
 			require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 		}
 	}
 	exact := uint64(len(unique))
-	res := uint64(hlltc.Estimate())
+	res := hlltc.Estimate()
 	ratio := 100 * estimateError(res, exact)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 }
@@ -240,18 +240,18 @@ func TestHLL_Merge_Complex(t *testing.T) {
 	}
 
 	exact1 := uint64(len(unique))
-	res1 := uint64(sk1.Estimate())
+	res1 := sk1.Estimate()
 	ratio := 100 * estimateError(res1, exact1)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact1, res1, ratio)
 
 	exact2 := uint64(len(unique)) / 2
-	res2 := uint64(sk2.Estimate())
+	res2 := sk2.Estimate()
 	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
 	require.NoError(t, sk2.Merge(sk1))
 	exact2 = uint64(len(unique))
-	res2 = uint64(sk2.Estimate())
+	res2 = sk2.Estimate()
 	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 2.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 
@@ -263,7 +263,7 @@ func TestHLL_Merge_Complex(t *testing.T) {
 
 	require.NoError(t, sk2.Merge(sk3))
 	exact2 = uint64(len(unique))
-	res2 = uint64(sk2.Estimate())
+	res2 = sk2.Estimate()
 	ratio = 100 * estimateError(res2, exact2)
 	require.LessOrEqual(t, ratio, 1.0, "Exact %d, got %d which is %.2f%% error", exact2, res2, ratio)
 }
@@ -347,7 +347,7 @@ func TestHLL_Marshal_Unmarshal_Dense(t *testing.T) {
 	require.NoError(t, err)
 
 	// Peeking at the first byte should reveal the version.
-	require.EqualValues(t, byte(version), data[0], "got byte %v, expected %v", data[0], byte(version))
+	require.Equal(t, byte(version), data[0], "got byte %v, expected %v", data[0], byte(version))
 
 	var res Sketch
 	require.NoError(t, res.UnmarshalBinary(data))
@@ -393,7 +393,7 @@ func TestHLL_Marshal_Unmarshal_Count(t *testing.T) {
 
 	// The count should be the same
 	oldC := gotC
-	require.EqualValues(t, oldC, sk.Estimate())
+	require.Equal(t, oldC, sk.Estimate())
 
 	// Add some more values.
 	for i := 0; i < 1000000; i++ {
@@ -429,11 +429,11 @@ func TestHLL_Unmarshal_ReplacesReceiver(t *testing.T) {
 	require.NoError(t, res.UnmarshalBinary(data))
 
 	// The tampered receiver is discarded, so "m" matches the encoded precision
-	require.EqualValues(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
+	require.Equal(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
 
 	// The same holds when the receiver was already filled in
 	require.NoError(t, res.UnmarshalBinary(data))
-	require.EqualValues(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
+	require.Equal(t, uint32(1)<<res.p, res.m, "UnmarshalBinary did not create a newSketch Sketch")
 }
 
 // Tests that a failed Unmarshal leaves the receiver alone.
@@ -453,7 +453,7 @@ func TestHLL_Unmarshal_ReceiverUnchangedOnError(t *testing.T) {
 
 	err = res.UnmarshalBinary(data[:len(data)-3])
 	require.ErrorIs(t, err, ErrorTooShort)
-	require.EqualValues(t, want, res.Estimate())
+	require.Equal(t, want, res.Estimate())
 
 	// The receiver is not merely unchanged, it is still usable.
 	res.InsertHash(rand.Uint64())
@@ -823,7 +823,7 @@ func FuzzUnmarshalBinary(f *testing.F) {
 		require.NoError(t, err)
 		var res Sketch
 		require.NoError(t, res.UnmarshalBinary(out))
-		require.EqualValues(t, sk.Estimate(), res.Estimate())
+		require.Equal(t, sk.Estimate(), res.Estimate())
 	})
 }
 
@@ -844,7 +844,7 @@ func TestHLL_Unmarshal_V2_CopiesInput(t *testing.T) {
 	for i := range data {
 		data[i] = 0xff
 	}
-	require.EqualValues(t, want, res.Estimate())
+	require.Equal(t, want, res.Estimate())
 }
 
 func TestHLL_AppendBinary(t *testing.T) {
@@ -971,7 +971,7 @@ func TestHLL_MergeSparse_NoZeroDeltas(t *testing.T) {
 		}
 		entries++
 	}
-	require.EqualValues(t, sk.sparseList.count, entries)
+	require.Equal(t, sk.sparseList.count, entries)
 
 	// A duplicate or out of order key would encode as a wrapped delta that
 	// UnmarshalBinary rejects, so the merged list has to survive a round trip.
@@ -979,7 +979,7 @@ func TestHLL_MergeSparse_NoZeroDeltas(t *testing.T) {
 	require.NoError(t, err)
 	var res Sketch
 	require.NoError(t, res.UnmarshalBinary(data))
-	require.EqualValues(t, sk.Estimate(), res.Estimate())
+	require.Equal(t, sk.Estimate(), res.Estimate())
 }
 
 func TestHLL_Clone(t *testing.T) {
@@ -996,13 +996,13 @@ func TestHLL_Clone(t *testing.T) {
 	require.EqualValues(t, 6, n)
 
 	sk2 := sk1.Clone()
-	require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+	require.Equal(t, sk1.Estimate(), sk2.Estimate())
 	require.True(t, isSketchEqual(sk1, sk2))
 
 	sk1.toNormal()
 	sk2 = sk1.Clone()
 
-	require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+	require.Equal(t, sk1.Estimate(), sk2.Estimate())
 	require.True(t, isSketchEqual(sk1, sk2))
 }
 
@@ -1293,14 +1293,14 @@ func TestHLL_Merge_Order(t *testing.T) {
 				}
 
 				skX := New14()
-				skX.Merge(sk1)
-				skX.Merge(sk2)
+				require.NoError(t, skX.Merge(sk1))
+				require.NoError(t, skX.Merge(sk2))
 
 				skY := New14()
-				skY.Merge(sk2)
-				skY.Merge(sk1)
+				require.NoError(t, skY.Merge(sk2))
+				require.NoError(t, skY.Merge(sk1))
 
-				require.EqualValues(t, skX.Estimate(), skY.Estimate())
+				require.Equal(t, skX.Estimate(), skY.Estimate())
 			})
 		}
 	}
@@ -1328,7 +1328,7 @@ func TestHLL_Add_Out_Of_Order(t *testing.T) {
 				sk2.Insert([]byte(fmt.Sprintf("a%d", v)))
 			}
 
-			require.EqualValues(t, sk1.Estimate(), sk2.Estimate())
+			require.Equal(t, sk1.Estimate(), sk2.Estimate())
 		})
 	}
 }
@@ -1351,8 +1351,12 @@ func benchmarkMerge(b *testing.B, size1, size2 int) {
 
 	for i := 0; i < b.N; i++ {
 		sk := New14()
-		sk.Merge(sk1)
-		sk.Merge(sk2)
+		if err := sk.Merge(sk1); err != nil {
+			b.Fatal(err)
+		}
+		if err := sk.Merge(sk2); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 

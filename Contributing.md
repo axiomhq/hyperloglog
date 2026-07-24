@@ -18,8 +18,8 @@ When reporting a bug, please try and provide as much context as possible such as
 git clone https://github.com/axiomhq/hyperloglog.git
 cd hyperloglog
 
-# Run tests
-go test ./...
+# Run formatting, linting, tests, and a build
+make ci
 
 # Run examples (see output demonstrating library usage)
 go test -run Example -v
@@ -31,7 +31,7 @@ go test -run Example -v
 
 2. Follow the normal process of [forking](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo) the project, and setup a new branch to work in. It's important that each group of changes be done in separate branches in order to ensure that a pull request only includes the commits related to that bug or feature.
 
-3. Go makes it very simple to ensure properly formatted code, so always run `go fmt` on your code before committing it.
+3. Run `make ci` before committing. Use `make fmt` to apply Go formatting.
 
 4. Do your best to have [well-formated commit messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 for each change. This provides consistency throughout the project and ensures that commit messages are able to be formatted properly by various git tools.
