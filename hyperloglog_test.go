@@ -1129,12 +1129,12 @@ func Benchmark_Size_New_Sparse(b *testing.B) {
 
 func Benchmark_Insert(b *testing.B) {
 	sk := New16NoSparse()
-	value := []byte("benchmark")
+	blobs := genData(1 << 16)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sk.Insert(value)
+		sk.Insert(blobs[i&(len(blobs)-1)])
 	}
 }
 
