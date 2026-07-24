@@ -95,6 +95,16 @@ func (v *compressedList) unmarshal(data []byte, p uint8) error {
 	if err := exactLen("compressed list stream", uint64(len(data)), uint64(sz)); err != nil {
 		return err
 	}
+	if count >= mp {
+		return fmt.Errorf("hyperloglog: compressed list count %d >= %d: %w", count, mp, ErrorInvalidData)
+	}
+	if count == 0 {
+		if sz != 0 || last != 0 {
+			return fmt.Errorf("hyperloglog: empty compressed list has size %d and last %d: %w", sz, last, ErrorInvalidData)
+		}
+	} else if sz < count || sz > 5*count {
+		return fmt.Errorf("hyperloglog: compressed list of %d entries has impossible stream size %d: %w", count, sz, ErrorInvalidData)
+	}
 
 	b := make(variableLengthList, sz)
 	copy(b, data[:sz])
@@ -125,9 +135,6 @@ func (v *compressedList) unmarshal(data []byte, p uint8) error {
 	}
 	if count != entries {
 		return fmt.Errorf("hyperloglog: compressed list count %d, decoded %d entries: %w", count, entries, ErrorInvalidData)
-	}
-	if count >= mp {
-		return fmt.Errorf("hyperloglog: compressed list count %d >= %d: %w", count, mp, ErrorInvalidData)
 	}
 	if last != running {
 		return fmt.Errorf("hyperloglog: compressed list last %d, decoded %d: %w", last, running, ErrorInvalidData)
