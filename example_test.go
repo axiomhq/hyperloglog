@@ -101,6 +101,9 @@ func Example_precision() {
 func Example_insertHash() {
 	sketch := New()
 
+	// InsertHash requires values from a high-quality hash function with a
+	// uniform distribution across all 64 bits. Do not pass sequential IDs
+	// directly.
 	sketch.InsertHash(0x1234567890abcdef)
 	sketch.InsertHash(0xfedcba0987654321)
 	sketch.InsertHash(0x1111111111111111)
