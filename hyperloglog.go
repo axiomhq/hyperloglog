@@ -207,7 +207,15 @@ func (sk *Sketch) Estimate() uint64 {
 	}
 	if sk.sparse() {
 		sk.mergeSparse()
-		return uint64(linearCount(mp, mp-min(sk.sparseList.count, mp-1)))
+		// mergeSparse drains tmpSet into sparseList without consulting
+		// maybeToNormal, whose threshold only ever fires on insertion. Without
+		// this check a caller alternating small batches of Insert with
+		// Estimate keeps the sparse list growing past m forever.
+		if uint32(sk.sparseList.Len()) > sk.m {
+			sk.toNormal()
+		} else {
+			return uint64(linearCount(mp, mp-min(sk.sparseList.count, mp-1)))
+		}
 	}
 
 	sum, ez := sumAndZeros(sk.regs)
