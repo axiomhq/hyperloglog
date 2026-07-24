@@ -211,7 +211,7 @@ func (sk *Sketch) mergeSparse() {
 	}
 
 	sk.sparseList = newList
-	sk.tmpSet = makeSet(0)
+	sk.tmpSet.clear()
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
@@ -351,4 +351,15 @@ func (sk *Sketch) unmarshalBinaryV1(data []byte, b uint8) error {
 func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 	sk.regs = data[8:]
 	return nil
+}
+
+// Reset clears the sketch while preserving its current representation and
+// allocated backing storage.
+func (sk *Sketch) Reset() {
+	if sk.sparse() {
+		sk.tmpSet.clear()
+		sk.sparseList.clear()
+		return
+	}
+	clear(sk.regs)
 }

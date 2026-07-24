@@ -908,3 +908,120 @@ func Benchmark_MarshalBinary(b *testing.B) {
 		}
 	}
 }
+
+func TestReset(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		sk         *Sketch
+		wantSparse bool
+	}{
+		{name: "dense", sk: New16NoSparse(), wantSparse: false},
+		{name: "sparse", sk: New16(), wantSparse: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			hashes := make([]uint64, 100)
+			for i := range hashes {
+				hashes[i] = hash(fmt.Appendf(nil, "unique_%d", i))
+			}
+
+			for _, value := range hashes {
+				tc.sk.InsertHash(value)
+			}
+			want := tc.sk.Estimate()
+			require.NotZero(t, want)
+			require.Equal(t, tc.wantSparse, tc.sk.sparse())
+
+			tc.sk.Reset()
+			require.Equal(t, tc.wantSparse, tc.sk.sparse())
+			require.Zero(t, tc.sk.Estimate())
+
+			for _, value := range hashes {
+				tc.sk.InsertHash(value)
+			}
+			require.Equal(t, want, tc.sk.Estimate())
+		})
+	}
+}
+
+func TestResetPreservesPromotedRepresentation(t *testing.T) {
+	sk := New16()
+	for item := 0; sk.sparse(); item++ {
+		sk.Insert([]byte(fmt.Sprintf("promote_%d", item)))
+	}
+	require.Nil(t, sk.sparseList)
+	require.Nil(t, sk.tmpSet.m)
+
+	sk.Reset()
+	require.False(t, sk.sparse())
+	require.Zero(t, sk.Estimate())
+
+	expect := New16NoSparse()
+	for item := 0; item < 1000; item++ {
+		value := []byte(fmt.Sprintf("reuse_%d", item))
+		sk.Insert(value)
+		expect.Insert(value)
+	}
+	require.Equal(t, expect.Estimate(), sk.Estimate())
+
+	sk.Reset()
+	require.False(t, sk.sparse())
+	require.Zero(t, sk.Estimate())
+}
+
+func TestUnmarshalBinary_DenseIntoFreshSparseSketch(t *testing.T) {
+	src := New16NoSparse()
+	src.Insert([]byte("foo"))
+	src.Insert([]byte("bar"))
+
+	data, err := src.MarshalBinary()
+	require.NoError(t, err)
+
+	dst := New16()
+	require.NoError(t, dst.UnmarshalBinary(data))
+
+	require.NotZero(t, src.Estimate())
+	require.Equal(t, src.Estimate(), dst.Estimate())
+}
+
+func BenchmarkReset(b *testing.B) {
+	makeHashes := func(n int) []uint64 {
+		hashes := make([]uint64, n)
+		for i := range hashes {
+			hashes[i] = hash(fmt.Appendf(nil, "reuse_%d", i))
+		}
+		return hashes
+	}
+	run := func(b *testing.B, sk *Sketch, hashes []uint64) {
+		// Warm up the sketch so allocations needed to reach its steady-state
+		// capacity are not charged to the reuse cycle.
+		for _, value := range hashes {
+			sk.InsertHash(value)
+		}
+		sk.Reset()
+
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			for _, value := range hashes {
+				sk.InsertHash(value)
+			}
+			sk.Reset()
+		}
+	}
+
+	b.Run("sketch-16/sparse", func(b *testing.B) {
+		run(b, New16(), makeHashes(100))
+	})
+
+	b.Run("sketch-16/dense", func(b *testing.B) {
+		run(b, New16NoSparse(), makeHashes(1000))
+	})
+
+	b.Run("sketch-16/promoted", func(b *testing.B) {
+		sk := New16()
+		for item := 0; sk.sparse(); item++ {
+			sk.Insert(fmt.Appendf(nil, "promote_%d", item))
+		}
+		run(b, sk, makeHashes(1000))
+	})
+}

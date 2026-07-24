@@ -114,6 +114,12 @@ func (v *compressedList) decode(i int, last uint32) (uint32, int) {
 	return n + last, i
 }
 
+func (v *compressedList) clear() {
+	v.count = 0
+	v.last = 0
+	v.b.clear()
+}
+
 func (v *compressedList) Append(x uint32) {
 	v.count++
 	v.b = v.b.Append(x - v.last)
@@ -145,6 +151,10 @@ func (v variableLengthList) AppendBinary(data []byte) ([]byte, error) {
 	data = append(data, v...)
 
 	return data, nil
+}
+
+func (v *variableLengthList) clear() {
+	*v = (*v)[:0]
 }
 
 func (v variableLengthList) decode(i int) (uint32, int) {
