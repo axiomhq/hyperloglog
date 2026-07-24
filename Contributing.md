@@ -1,6 +1,6 @@
 ## How to Contribute
 
-👍🎉 First of all, thank you for your interest in Axiom-node! We'd love to accept your patches and contributions! 🎉👍
+👍🎉 First of all, thank you for your interest in hyperloglog! We'd love to accept your patches and contributions! 🎉👍
 
 This project accepts contributions. In order to contribute, you should pay attention to a few guidelines:
 
@@ -33,10 +33,10 @@ go test -run Example -v
 
 3. Go makes it very simple to ensure properly formatted code, so always run `go fmt` on your code before committing it.
 
-4. Do your best to have [well-formated commit messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+4. Do your best to have [well-formatted commit messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 for each change. This provides consistency throughout the project and ensures that commit messages are able to be formatted properly by various git tools.
 
-5. Finally, push the commits to your fork and submit a [pull request](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request)
+5. Finally, push the commits to your fork and submit a [pull request](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request).
 
 ### Once you've filed the PR:
 
