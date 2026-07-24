@@ -14,6 +14,8 @@ const (
 	version = 2
 )
 
+// Sketch is a HyperLogLog estimator. Do not copy one after first use; use
+// Clone. Its zero value is empty and initializes on insertion or merge.
 type Sketch struct {
 	p          uint8
 	m          uint32
@@ -106,12 +108,17 @@ func (sk *Sketch) maybeToNormal() {
 	}
 }
 
+// Merge adds other to sk. Nil and zero-value sketches are treated as empty.
 func (sk *Sketch) Merge(other *Sketch) error {
-	if other == nil {
+	if other == nil || other.p == 0 {
+		return nil
+	}
+	if sk.p == 0 {
+		*sk = *other.Clone()
 		return nil
 	}
 	if sk.p != other.p {
-		return errors.New("precisions must be equal")
+		return fmt.Errorf("hyperloglog: cannot merge precision %d with precision %d: %w", sk.p, other.p, ErrorPrecisionMismatch)
 	}
 
 	if sk.sparse() && other.sparse() {
@@ -169,9 +176,15 @@ func (sk *Sketch) toNormal() {
 }
 
 func (sk *Sketch) insert(i uint32, r uint8) { sk.regs[i] = max(r, sk.regs[i]) }
-func (sk *Sketch) Insert(e []byte)          { sk.InsertHash(hash(e)) }
 
+// Insert hashes e with the package's MetroHash64 seed and adds it to sk.
+func (sk *Sketch) Insert(e []byte) { sk.InsertHash(hash(e)) }
+
+// InsertHash adds a uniformly distributed 64-bit hash to sk.
 func (sk *Sketch) InsertHash(x uint64) {
+	if sk.p == 0 {
+		*sk = *New()
+	}
 	if sk.sparse() {
 		if sk.tmpSet.add(encodeHash(x, sk.p, pp)) {
 			sk.maybeToNormal()
@@ -182,7 +195,11 @@ func (sk *Sketch) InsertHash(x uint64) {
 	sk.insert(uint32(i), r)
 }
 
+// Estimate returns the cardinality estimate and may compact sparse state.
 func (sk *Sketch) Estimate() uint64 {
+	if sk.p == 0 {
+		return 0
+	}
 	if sk.sparse() {
 		sk.mergeSparse()
 		return uint64(linearCount(mp, mp-sk.sparseList.count))
@@ -322,6 +339,10 @@ var ErrorInvalidPrecision = errors.New("p has to be >= 4 and <= 18")
 // enough but describes a state that cannot be decoded.
 var ErrorInvalidData = errors.New("invalid binary data")
 
+// ErrorPrecisionMismatch is wrapped by Merge when the sketches have different
+// precisions.
+var ErrorPrecisionMismatch = errors.New("precisions must be equal")
+
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
 //
 // The binary format starts with a 4 byte header:
@@ -421,6 +442,9 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		need := 8 + 4*uint64(tssz)
 		if need > uint64(len(data)) {
 			return fmt.Errorf("hyperloglog: tmp set of %d keys needs %d bytes, have %d: %w", tssz, need, len(data), ErrorTooShort)
+		}
+		if tssz > m {
+			return fmt.Errorf("hyperloglog: tmp set count %d exceeds register count %d: %w", tssz, m, ErrorInvalidData)
 		}
 		tmp = newSketchNoError(p, true)
 		tmp.tmpSet = makeSet(int(tssz))

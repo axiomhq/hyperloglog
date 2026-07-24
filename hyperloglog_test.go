@@ -162,7 +162,27 @@ func TestHLL_Merge_Error(t *testing.T) {
 	sk2 := NewTestSketch(10)
 
 	err := sk.Merge(sk2)
-	require.Error(t, err, "different precision should return error")
+	require.ErrorIs(t, err, ErrorPrecisionMismatch, "different precision should return error")
+	require.Contains(t, err.Error(), "precision 16")
+	require.Contains(t, err.Error(), "precision 10")
+}
+
+func TestHLL_ZeroValue(t *testing.T) {
+	var sk Sketch
+
+	require.Zero(t, sk.Estimate())
+	require.NoError(t, sk.Merge(nil))
+
+	sk.InsertHash(1)
+	require.EqualValues(t, 1, sk.Estimate())
+
+	sk.Reset()
+	require.Zero(t, sk.Estimate())
+
+	var dst Sketch
+	require.NoError(t, dst.Merge(New16NoSparse()))
+	require.EqualValues(t, 16, dst.p)
+	require.False(t, dst.sparse())
 }
 
 func TestHLL_Merge_Sparse(t *testing.T) {
@@ -458,6 +478,46 @@ func TestHLL_Unmarshal_ErrorTooShort(t *testing.T) {
 	}
 
 	require.ErrorIs(t, (&Sketch{}).UnmarshalBinary(b[:4]), ErrorTooShort)
+}
+
+func TestHLL_Unmarshal_RejectsAllocationAmplification(t *testing.T) {
+	t.Run("tmp set larger than register count", func(t *testing.T) {
+		const count = 17
+		blob := make([]byte, 8+4*count)
+		blob[0] = version
+		blob[1] = 4
+		blob[3] = 1
+		binary.BigEndian.PutUint32(blob[4:8], count)
+
+		var sk Sketch
+		require.ErrorIs(t, sk.UnmarshalBinary(blob), ErrorInvalidData)
+	})
+
+	t.Run("empty compressed list with nonempty stream", func(t *testing.T) {
+		blob := []byte{
+			version, 14, 0, 1, 0, 0, 0, 0,
+			0, 0, 0, 0,
+			0, 0, 0, 0,
+			0, 0, 0, 1,
+			0,
+		}
+
+		var sk Sketch
+		require.ErrorIs(t, sk.UnmarshalBinary(blob), ErrorInvalidData)
+	})
+
+	t.Run("stream size impossible for count", func(t *testing.T) {
+		blob := []byte{
+			version, 14, 0, 1, 0, 0, 0, 0,
+			0, 0, 0, 2,
+			0, 0, 0, 1,
+			0, 0, 0, 1,
+			1,
+		}
+
+		var sk Sketch
+		require.ErrorIs(t, sk.UnmarshalBinary(blob), ErrorInvalidData)
+	})
 }
 
 var unmarshalMalformedTests = []struct {
