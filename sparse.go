@@ -70,7 +70,9 @@ func (s set) add(v uint32) bool {
 }
 
 func (s set) clear() {
-	s.m.Clear()
+	if s.m != nil {
+		s.m.Clear()
+	}
 }
 
 func (s set) Clone() set {

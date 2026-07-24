@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -332,7 +331,9 @@ func TestHLL_Marshal_Unmarshal_Dense(t *testing.T) {
 	var res Sketch
 	require.NoError(t, res.UnmarshalBinary(data))
 
-	assert.Equal(t, sk, &res, "Must match the expected value")
+	// reflect.DeepEqual will always return false when comparing non-nil
+	// functions, so we'll set them to nil.
+	require.True(t, reflect.DeepEqual(&res, sk), "got %v, wanted %v", spew.Sdump(&res), spew.Sdump(sk))
 }
 
 // Tests that a sketch can be serialised / unserialised and keep an accurate
@@ -910,27 +911,34 @@ func Benchmark_MarshalBinary(b *testing.B) {
 
 func TestReset(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		sk   *Sketch
+		name       string
+		sk         *Sketch
+		wantSparse bool
 	}{
-		{name: "dense", sk: New16NoSparse()},
-		{name: "sparse", sk: New16()},
+		{name: "dense", sk: New16NoSparse(), wantSparse: false},
+		{name: "sparse", sk: New16(), wantSparse: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			expect := tc.sk.Clone()
-
-			allocs := testing.AllocsPerRun(1000, func() {
-				tc.sk.Reset()
-			})
-			assert.Zero(t, allocs, "Must report an alloc total of zero")
-
-			for val := 0; val < 1000; val++ {
-				item := []byte(fmt.Sprintf("unique_%d", val))
-				expect.Insert(item)
-				tc.sk.Insert(item)
+			hashes := make([]uint64, 100)
+			for i := range hashes {
+				hashes[i] = hash(fmt.Appendf(nil, "unique_%d", i))
 			}
 
-			assert.Equal(t, expect.Estimate(), tc.sk.Estimate(), "Must have the same estimated value")
+			for _, value := range hashes {
+				tc.sk.InsertHash(value)
+			}
+			want := tc.sk.Estimate()
+			require.NotZero(t, want)
+			require.Equal(t, tc.wantSparse, tc.sk.sparse())
+
+			tc.sk.Reset()
+			require.Equal(t, tc.wantSparse, tc.sk.sparse())
+			require.Zero(t, tc.sk.Estimate())
+
+			for _, value := range hashes {
+				tc.sk.InsertHash(value)
+			}
+			require.Equal(t, want, tc.sk.Estimate())
 		})
 	}
 }
@@ -940,6 +948,8 @@ func TestResetPreservesPromotedRepresentation(t *testing.T) {
 	for item := 0; sk.sparse(); item++ {
 		sk.Insert([]byte(fmt.Sprintf("promote_%d", item)))
 	}
+	require.Nil(t, sk.sparseList)
+	require.Nil(t, sk.tmpSet.m)
 
 	sk.Reset()
 	require.False(t, sk.sparse())
@@ -974,45 +984,44 @@ func TestUnmarshalBinary_DenseIntoFreshSparseSketch(t *testing.T) {
 }
 
 func BenchmarkReset(b *testing.B) {
-	b.Run("sketch-16/sparse-initialized", func(b *testing.B) {
-		sk := New16()
-		b.ResetTimer()
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			sk.Reset()
+	makeHashes := func(n int) []uint64 {
+		hashes := make([]uint64, n)
+		for i := range hashes {
+			hashes[i] = hash(fmt.Appendf(nil, "reuse_%d", i))
 		}
-		_ = sk
-	})
-
-	b.Run("sketch-16/dense-initialized", func(b *testing.B) {
-		sk := New16NoSparse()
-		b.ResetTimer()
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			sk.Reset()
-		}
-		_ = sk
-	})
-
-	b.Run("sketch-16/sparse-promoted", func(b *testing.B) {
-		sk := New16()
-		for item := 0; sk.sparse(); item++ {
-			sk.Insert([]byte(fmt.Sprintf("promote_%d", item)))
+		return hashes
+	}
+	run := func(b *testing.B, sk *Sketch, hashes []uint64) {
+		// Warm up the sketch so allocations needed to reach its steady-state
+		// capacity are not charged to the reuse cycle.
+		for _, value := range hashes {
+			sk.InsertHash(value)
 		}
 		sk.Reset()
-		hashes := make([]uint64, 1000)
-		for item := range hashes {
-			hashes[item] = hash([]byte(fmt.Sprintf("reuse_%d", item)))
-		}
 
-		b.ResetTimer()
 		b.ReportAllocs()
+		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			for _, item := range hashes {
-				sk.InsertHash(item)
+			for _, value := range hashes {
+				sk.InsertHash(value)
 			}
 			sk.Reset()
 		}
-		_ = sk
+	}
+
+	b.Run("sketch-16/sparse", func(b *testing.B) {
+		run(b, New16(), makeHashes(100))
+	})
+
+	b.Run("sketch-16/dense", func(b *testing.B) {
+		run(b, New16NoSparse(), makeHashes(1000))
+	})
+
+	b.Run("sketch-16/promoted", func(b *testing.B) {
+		sk := New16()
+		for item := 0; sk.sparse(); item++ {
+			sk.Insert(fmt.Appendf(nil, "promote_%d", item))
+		}
+		run(b, sk, makeHashes(1000))
 	})
 }

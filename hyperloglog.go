@@ -15,7 +15,6 @@ const (
 )
 
 type Sketch struct {
-	current    state
 	p          uint8
 	m          uint32
 	alpha      float64
@@ -50,10 +49,9 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	}
 	m := uint32(1) << precision
 	s := &Sketch{
-		current: newState(sparse),
-		m:       m,
-		p:       precision,
-		alpha:   alpha(float64(m)),
+		m:     m,
+		p:     precision,
+		alpha: alpha(float64(m)),
 	}
 	if sparse {
 		s.tmpSet = makeSet(0)
@@ -64,7 +62,7 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 	return s, nil
 }
 
-func (sk *Sketch) sparse() bool { return sk.current.isSparse() }
+func (sk *Sketch) sparse() bool { return sk.sparseList != nil }
 
 // Clone returns a deep copy of sk.
 func (sk *Sketch) Clone() *Sketch {
@@ -142,9 +140,8 @@ func (sk *Sketch) toNormal() {
 		sk.insert(i, r)
 	}
 
-	sk.tmpSet.clear()
-	sk.sparseList.clear()
-	sk.current = stateDense
+	sk.tmpSet = nilSet
+	sk.sparseList = nil
 }
 
 func (sk *Sketch) insert(i uint32, r uint8) { sk.regs[i] = max(r, sk.regs[i]) }
@@ -237,7 +234,7 @@ func (sk *Sketch) AppendBinary(data []byte) ([]byte, error) {
 
 	if sk.sparse() {
 		// It's using the sparse Sketch.
-		data = append(data, sk.current.Byte())
+		data = append(data, byte(1))
 
 		// Add the tmp_set
 		data, err := sk.tmpSet.AppendBinary(data)
@@ -250,7 +247,7 @@ func (sk *Sketch) AppendBinary(data []byte) ([]byte, error) {
 	}
 
 	// It's using the dense Sketch.
-	data = append(data, sk.current.Byte())
+	data = append(data, byte(0))
 
 	// Add the dense sketch Sketch.
 	sz := len(sk.regs)
@@ -290,7 +287,7 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	b := data[2]
 
 	// Determine if we need a sparse Sketch
-	sparse := state(data[3]).isSparse()
+	sparse := data[3] == byte(1)
 
 	// Make a newSketch Sketch if the precision doesn't match or if the Sketch was used
 	if sk.p != p || sk.regs != nil || sk.tmpSet.Len() > 0 || (sk.sparseList != nil && sk.sparseList.Len() > 0) {
@@ -300,7 +297,6 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		}
 		*sk = *newh
 	}
-	sk.current = newState(sparse)
 
 	// h is now initialised with the correct p. We just need to fill the
 	// rest of the details out.
@@ -322,6 +318,10 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 		// Unmarshal the sparse Sketch.
 		return sk.sparseList.UnmarshalBinary(data[tsLastByte:])
 	}
+
+	// Using the dense Sketch.
+	sk.sparseList = nil
+	sk.tmpSet = nilSet
 
 	if v == 1 {
 		return sk.unmarshalBinaryV1(data[8:], b)
@@ -356,9 +356,10 @@ func (sk *Sketch) unmarshalBinaryV2(data []byte) error {
 // Reset clears the sketch while preserving its current representation and
 // allocated backing storage.
 func (sk *Sketch) Reset() {
-	if sk.current.isSparse() {
+	if sk.sparse() {
 		sk.tmpSet.clear()
 		sk.sparseList.clear()
+		return
 	}
 	clear(sk.regs)
 }
