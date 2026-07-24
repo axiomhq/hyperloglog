@@ -97,7 +97,7 @@ func Example_precision() {
 	// Precision 16: 100 unique elements
 }
 
-// Example_insertHash shows using InsertHash when you already have hash values.
+// Example_insertHash demonstrates using InsertHash when pre-calculated 64-bit hash values are available.
 func Example_insertHash() {
 	sketch := New()
 
