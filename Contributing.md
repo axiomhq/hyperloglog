@@ -1,4 +1,4 @@
-## How to Contribute
+# How to Contribute
 
 👍🎉 First of all, thank you for your interest in hyperloglog! We'd love to accept your patches and contributions! 🎉👍
 
@@ -12,10 +12,10 @@ When reporting a bug, please try and provide as much context as possible such as
 
 ## Setup
 
-[Fork](https://github.com/axiomhq/hyperloglog.git), then clone this repository:
+[Fork](https://github.com/axiomhq/hyperloglog/fork), then clone this repository:
 
 ```
-git clone https://github.com/axiomhq/hyperloglog.git
+git clone https://github.com/<your-username>/hyperloglog.git
 cd hyperloglog
 
 # Run formatting, linting, tests, and a build
