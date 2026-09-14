@@ -42,7 +42,7 @@ A big thank you to Prof. Shigang Chen and his team at the University of Florida 
 
 ## Contributing
 
-Kindly check our [contributing guide](https://github.com/axiomhq/hyperloglog/blob/main/Contributing.md) on how to propose bugfixes and improvements, and submitting pull requests to the project
+Kindly check our [contributing guide](https://github.com/axiomhq/hyperloglog/blob/main/Contributing.md) on how to propose bugfixes and improvements, and submit pull requests to the project.
 
 Run the same checks used by CI before opening a pull request:
 
@@ -59,8 +59,8 @@ publishes a GitHub Release with generated release notes.
 
 ## License
 
-&copy; Axiom, Inc., 2024
+&copy; Axiom, Inc., 2026
 
-Distributed under MIT License (`The MIT License`).
+Distributed under the MIT License (`The MIT License`).
 
 See [LICENSE](LICENSE) for more information.
