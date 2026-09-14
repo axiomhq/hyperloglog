@@ -59,7 +59,7 @@ publishes a GitHub Release with generated release notes.
 
 ## License
 
-&copy; Axiom, Inc., 2024
+&copy; Axiom, Inc., 2026
 
 Distributed under the MIT License (`The MIT License`).
 
