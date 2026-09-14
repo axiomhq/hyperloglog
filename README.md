@@ -55,7 +55,8 @@ Individual targets are available for formatting (`make fmt`), linting
 coverage (`make coverage`).
 
 Version tags matching `v*.*.*` are validated by the release workflow before it
-publishes a GitHub Release with generated release notes.
+publishes a GitHub Release with generated release notes. Tags with a pre-release
+suffix, such as `v1.0.0-rc.1`, publish as pre-releases.
 
 ## License
 
