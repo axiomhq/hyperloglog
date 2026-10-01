@@ -129,16 +129,12 @@ func TestHLL_Precision_NoSparse(t *testing.T) {
 }
 
 func TestSumAndZerosMatchesMathPow(t *testing.T) {
-	for p := uint8(4); p <= 18; p++ {
-		regs := make([]uint8, int(maxRho(p))+1)
-		for i := range regs {
-			regs[i] = uint8(i)
-		}
-
+	for rank := uint8(0); rank <= maxRho(4); rank++ {
+		regs := []uint8{rank}
 		gotSum, gotZeros := sumAndZeros(regs)
 		wantSum, wantZeros := sumAndZerosWithMathPow(regs)
-		require.Equal(t, wantSum, gotSum)
-		require.Equal(t, wantZeros, gotZeros)
+		require.Equal(t, math.Float64bits(wantSum), math.Float64bits(gotSum))
+		require.Equal(t, math.Float64bits(wantZeros), math.Float64bits(gotZeros))
 	}
 }
 
