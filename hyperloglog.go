@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 )
 
@@ -525,12 +524,22 @@ func (sk *Sketch) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+const maxRegisterRank = 61 // maxRho at the minimum supported precision, 4.
+
+var inversePowersOfTwo = func() [maxRegisterRank + 1]float64 {
+	powers := [maxRegisterRank + 1]float64{1}
+	for i := 1; i < len(powers); i++ {
+		powers[i] = powers[i-1] / 2
+	}
+	return powers
+}()
+
 func sumAndZeros(regs []uint8) (res, ez float64) {
 	for _, v := range regs {
 		if v == 0 {
 			ez++
 		}
-		res += 1.0 / math.Pow(2.0, float64(v))
+		res += inversePowersOfTwo[v]
 	}
 	return res, ez
 }

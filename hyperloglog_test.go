@@ -25,6 +25,33 @@ func estimateError(got, exp uint64) float64 {
 	return float64(delta) / float64(exp)
 }
 
+func sumAndZerosWithMathPow(regs []uint8) (res, ez float64) {
+	for _, v := range regs {
+		if v == 0 {
+			ez++
+		}
+		res += 1.0 / math.Pow(2.0, float64(v))
+	}
+	return res, ez
+}
+
+func estimateWithMathPow(sk *Sketch) uint64 {
+	sum, ez := sumAndZerosWithMathPow(sk.regs)
+	m := float64(sk.m)
+	est := sk.alpha * m * (m - ez) / (sum + beta(sk.p, ez))
+	return uint64(est + 0.5)
+}
+
+func insertDistinctAndDuplicates(sk *Sketch, prefix string, count int) {
+	for i := 0; i < count; i++ {
+		value := fmt.Appendf(nil, "%s-%d", prefix, i)
+		sk.Insert(value)
+		if i%2 == 0 {
+			sk.Insert(value)
+		}
+	}
+}
+
 func TestHLL_CardinalityHashed(t *testing.T) {
 	hlltc, err := NewSketch(14, true)
 	require.NoError(t, err)
@@ -99,6 +126,45 @@ func TestHLL_Precision_NoSparse(t *testing.T) {
 	sk.InsertHash(0x00ffffffffffffff)
 	n = sk.regs[0]
 	require.EqualValues(t, 5, n)
+}
+
+func TestSumAndZerosMatchesMathPow(t *testing.T) {
+	for rank := uint8(0); rank <= maxRho(4); rank++ {
+		regs := []uint8{rank}
+		gotSum, gotZeros := sumAndZeros(regs)
+		wantSum, wantZeros := sumAndZerosWithMathPow(regs)
+		require.Equal(t, math.Float64bits(wantSum), math.Float64bits(gotSum))
+		require.Equal(t, math.Float64bits(wantZeros), math.Float64bits(gotZeros))
+	}
+}
+
+func TestEstimateExactAcrossOperations(t *testing.T) {
+	for p := uint8(4); p <= 18; p++ {
+		t.Run(fmt.Sprintf("precision-%d", p), func(t *testing.T) {
+			sk, err := NewSketch(p, false)
+			require.NoError(t, err)
+			insertDistinctAndDuplicates(sk, "first", 32)
+			require.Equal(t, estimateWithMathPow(sk), sk.Estimate())
+
+			other, err := NewSketch(p, false)
+			require.NoError(t, err)
+			insertDistinctAndDuplicates(other, "second", 32)
+			require.NoError(t, sk.Merge(other))
+			require.Equal(t, estimateWithMathPow(sk), sk.Estimate())
+
+			data, err := sk.MarshalBinary()
+			require.NoError(t, err)
+			restored, err := NewSketch(p, true)
+			require.NoError(t, err)
+			require.NoError(t, restored.UnmarshalBinary(data))
+			require.Equal(t, estimateWithMathPow(restored), restored.Estimate())
+
+			sk.Reset()
+			require.Zero(t, sk.Estimate())
+			insertDistinctAndDuplicates(sk, "after-reset", 32)
+			require.Equal(t, estimateWithMathPow(sk), sk.Estimate())
+		})
+	}
 }
 
 func TestHLL_toNormal(t *testing.T) {
@@ -1135,6 +1201,21 @@ func Benchmark_Insert(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sk.Insert(blobs[i&(len(blobs)-1)])
+	}
+}
+
+var estimateBenchmarkSink uint64
+
+func BenchmarkEstimateDenseP14(b *testing.B) {
+	sk := NewNoSparse()
+	insertDistinctAndDuplicates(sk, "estimate", 1<<14)
+	if got, want := sk.Estimate(), estimateWithMathPow(sk); got != want {
+		b.Fatalf("Estimate() = %d, want %d", got, want)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		estimateBenchmarkSink = sk.Estimate()
 	}
 }
 
