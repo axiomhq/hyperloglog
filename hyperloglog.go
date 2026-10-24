@@ -95,6 +95,11 @@ func NewSketch(precision uint8, sparse bool) (*Sketch, error) {
 
 func (sk *Sketch) sparse() bool { return sk.sparseList != nil }
 
+// IsSparse reports whether the sketch is currently using the sparse representation.
+// Reset preserves the representation, so callers that reuse
+// sketches can use this to know whether clearing one keeps a dense register array alive.
+func (sk *Sketch) IsSparse() bool { return sk.sparse() }
+
 // Clone returns a deep copy of sk.
 func (sk *Sketch) Clone() *Sketch {
 	clone := *sk

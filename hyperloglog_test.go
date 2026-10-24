@@ -1477,6 +1477,21 @@ func TestResetPreservesPromotedRepresentation(t *testing.T) {
 	require.Zero(t, sk.Estimate())
 }
 
+func TestIsSparse(t *testing.T) {
+	sk := New16()
+	require.True(t, sk.IsSparse())
+
+	for item := 0; sk.sparse(); item++ {
+		sk.Insert(fmt.Appendf(nil, "promote_%d", item))
+	}
+	require.False(t, sk.IsSparse())
+
+	sk.Reset()
+	require.False(t, sk.IsSparse(), "Reset preserves the representation")
+
+	require.False(t, New16NoSparse().IsSparse())
+}
+
 func TestUnmarshalBinary_DenseIntoFreshSparseSketch(t *testing.T) {
 	src := New16NoSparse()
 	src.Insert([]byte("foo"))
